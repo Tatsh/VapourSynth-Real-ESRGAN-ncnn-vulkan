@@ -1,0 +1,17 @@
+{
+  "configurations": [
+    {
+      "name": "Linux",
+      "includePath": [
+        "${workspaceFolder}/**",
+        "/usr/include/vapoursynth",
+        "/usr/include/ncnn"
+      ],
+      "defines": [],
+      "compilerPath": "/usr/lib/llvm/16/bin/clang",
+      "cStandard": "c17",
+      "cppStandard": "c++20"
+    }
+  ],
+  "version": 4
+}

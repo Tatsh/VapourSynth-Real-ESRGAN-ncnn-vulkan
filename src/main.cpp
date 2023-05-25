@@ -1,890 +1,309 @@
 // realesrgan implemented with ncnn library
 #include <iostream>
-#include <stdio.h>
+#include <format>
+#include <cstdio>
 #include <algorithm>
 #include <queue>
-#include <vector>
 #include <clocale>
 #include <filesystem>
-namespace fs = std::filesystem;
-
-
-#if _WIN32
-// image decoder and encoder with wic
-#include "wic_image.h"
-#else // _WIN32
-// image decoder and encoder with stb
-#define STB_IMAGE_IMPLEMENTATION
-#define STBI_NO_PSD
-#define STBI_NO_TGA
-#define STBI_NO_GIF
-#define STBI_NO_HDR
-#define STBI_NO_PIC
-#define STBI_NO_STDIO
-#include "stb_image.h"
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
-#endif // _WIN32
-#include "webp_image.h"
-
-#if _WIN32
-#include <wchar.h>
-static wchar_t* optarg = NULL;
-static int optind = 1;
-static wchar_t getopt(int argc, wchar_t* const argv[], const wchar_t* optstring)
-{
-    if (optind >= argc || argv[optind][0] != L'-')
-        return -1;
-
-    wchar_t opt = argv[optind][1];
-    const wchar_t* p = wcschr(optstring, opt);
-    if (p == NULL)
-        return L'?';
-
-    optarg = NULL;
-
-    if (p[1] == L':')
-    {
-        optind++;
-        if (optind >= argc)
-            return L'?';
-
-        optarg = argv[optind];
-    }
-
-    optind++;
-
-    return opt;
-}
-
-static std::vector<int> parse_optarg_int_array(const wchar_t* optarg)
-{
-    std::vector<int> array;
-    array.push_back(_wtoi(optarg));
-
-    const wchar_t* p = wcschr(optarg, L',');
-    while (p)
-    {
-        p++;
-        array.push_back(_wtoi(p));
-        p = wcschr(p, L',');
-    }
-
-    return array;
-}
-#else // _WIN32
-#include <unistd.h> // getopt()
-
-static std::vector<int> parse_optarg_int_array(const char* optarg)
-{
-    std::vector<int> array;
-    array.push_back(atoi(optarg));
-
-    const char* p = strchr(optarg, ',');
-    while (p)
-    {
-        p++;
-        array.push_back(atoi(p));
-        p = strchr(p, ',');
-    }
-
-    return array;
-}
-#endif // _WIN32
+#include <mutex>
+#include <condition_variable>
+#include <map>
+#include <fstream>
 
 // ncnn
-#include "cpu.h"
-#include "gpu.h"
-#include "platform.h"
+#include <VSHelper.h>
+#include <VapourSynth.h>
+#include <cpu.h>
+#include <gpu.h>
+#include <platform.h>
 
 #include "realesrgan.h"
 
-#include "filesystem_utils.h"
+namespace fs = std::filesystem;
 
-static void print_usage()
+class Semaphore
 {
-    fprintf(stderr, "Usage: realesrgan-ncnn-vulkan -i infile -o outfile [options]...\n\n");
-    fprintf(stderr, "  -h                   show this help\n");
-    fprintf(stderr, "  -i input-path        input image path (jpg/png/webp) or directory\n");
-    fprintf(stderr, "  -o output-path       output image path (jpg/png/webp) or directory\n");
-    fprintf(stderr, "  -s scale             upscale ratio (can be 2, 3, 4. default=4)\n");
-    fprintf(stderr, "  -t tile-size         tile size (>=32/0=auto, default=0) can be 0,0,0 for multi-gpu\n");
-    fprintf(stderr, "  -m model-path        folder path to the pre-trained models. default=models\n");
-    fprintf(stderr, "  -n model-name        model name (default=realesr-animevideov3, can be realesr-animevideov3 | realesrgan-x4plus | realesrgan-x4plus-anime | realesrnet-x4plus)\n");
-    fprintf(stderr, "  -g gpu-id            gpu device to use (default=auto) can be 0,1,2 for multi-gpu\n");
-    fprintf(stderr, "  -j load:proc:save    thread count for load/proc/save (default=1:2:2) can be 1:2,2,2:2 for multi-gpu\n");
-    fprintf(stderr, "  -x                   enable tta mode\n");
-    fprintf(stderr, "  -f format            output image format (jpg/png/webp, default=ext/png)\n");
-    fprintf(stderr, "  -v                   verbose output\n");
-}
-
-class Task
-{
-public:
-    int id;
-    int webp;
-
-    path_t inpath;
-    path_t outpath;
-
-    ncnn::Mat inimage;
-    ncnn::Mat outimage;
-};
-
-class TaskQueue
-{
-public:
-    TaskQueue()
-    {
-    }
-
-    void put(const Task& v)
-    {
-        lock.lock();
-
-        while (tasks.size() >= 8) // FIXME hardcode queue length
-        {
-            condition.wait(lock);
-        }
-
-        tasks.push(v);
-
-        lock.unlock();
-
-        condition.signal();
-    }
-
-    void get(Task& v)
-    {
-        lock.lock();
-
-        while (tasks.size() == 0)
-        {
-            condition.wait(lock);
-        }
-
-        v = tasks.front();
-        tasks.pop();
-
-        lock.unlock();
-
-        condition.signal();
-    }
-
 private:
-    ncnn::Mutex lock;
-    ncnn::ConditionVariable condition;
-    std::queue<Task> tasks;
-};
+  int val;
+  std::mutex mtx;
+  std::condition_variable cv;
 
-TaskQueue toproc;
-TaskQueue tosave;
-
-class LoadThreadParams
-{
 public:
-    int scale;
-    int jobs_load;
+  explicit Semaphore(int init_value) : val(init_value) {}
 
-    // session data
-    std::vector<path_t> input_files;
-    std::vector<path_t> output_files;
+  void wait()
+  {
+    std::unique_lock<std::mutex> lock(mtx);
+    while (val <= 0)
+    {
+      cv.wait(lock);
+    }
+    val--;
+  }
+
+  void signal()
+  {
+    std::lock_guard<std::mutex> guard(mtx);
+    val++;
+    cv.notify_one();
+  }
 };
 
-void* load(void* args)
+struct FilterData
 {
-    const LoadThreadParams* ltp = (const LoadThreadParams*)args;
-    const int count = ltp->input_files.size();
-    const int scale = ltp->scale;
+  VSNodeRef *node;
+  const VSVideoInfo *vi;
+  int target_width, target_height;
+  RealESRGAN *realesrgan;
+  Semaphore *gpuSemaphore;
+};
 
-    #pragma omp parallel for schedule(static,1) num_threads(ltp->jobs_load)
-    for (int i=0; i<count; i++)
-    {
-        const path_t& imagepath = ltp->input_files[i];
+static std::mutex g_lock{};
+static int g_filter_instance_count = 0;
+static std::map<int, Semaphore *> g_gpu_semaphore;
 
-        int webp = 0;
-
-        unsigned char* pixeldata = 0;
-        int w;
-        int h;
-        int c;
-
-#if _WIN32
-        FILE* fp = _wfopen(imagepath.c_str(), L"rb");
-#else
-        FILE* fp = fopen(imagepath.c_str(), "rb");
-#endif
-        if (fp)
-        {
-            // read whole file
-            unsigned char* filedata = 0;
-            int length = 0;
-            {
-                fseek(fp, 0, SEEK_END);
-                length = ftell(fp);
-                rewind(fp);
-                filedata = (unsigned char*)malloc(length);
-                if (filedata)
-                {
-                    fread(filedata, 1, length, fp);
-                }
-                fclose(fp);
-            }
-
-            if (filedata)
-            {
-                pixeldata = webp_load(filedata, length, &w, &h, &c);
-                if (pixeldata)
-                {
-                    webp = 1;
-                }
-                else
-                {
-                    // not webp, try jpg png etc.
-#if _WIN32
-                    pixeldata = wic_decode_image(imagepath.c_str(), &w, &h, &c);
-#else // _WIN32
-                    pixeldata = stbi_load_from_memory(filedata, length, &w, &h, &c, 0);
-                    if (pixeldata)
-                    {
-                        // stb_image auto channel
-                        if (c == 1)
-                        {
-                            // grayscale -> rgb
-                            stbi_image_free(pixeldata);
-                            pixeldata = stbi_load_from_memory(filedata, length, &w, &h, &c, 3);
-                            c = 3;
-                        }
-                        else if (c == 2)
-                        {
-                            // grayscale + alpha -> rgba
-                            stbi_image_free(pixeldata);
-                            pixeldata = stbi_load_from_memory(filedata, length, &w, &h, &c, 4);
-                            c = 4;
-                        }
-                    }
-#endif // _WIN32
-                }
-
-                free(filedata);
-            }
-        }
-        if (pixeldata)
-        {
-            Task v;
-            v.id = i;
-            v.inpath = imagepath;
-            v.outpath = ltp->output_files[i];
-
-            v.inimage = ncnn::Mat(w, h, (void*)pixeldata, (size_t)c, c);
-            v.outimage = ncnn::Mat(w * scale, h * scale, (size_t)c, c);
-
-            path_t ext = get_file_extension(v.outpath);
-            if (c == 4 && (ext == PATHSTR("jpg") || ext == PATHSTR("JPG") || ext == PATHSTR("jpeg") || ext == PATHSTR("JPEG")))
-            {
-                path_t output_filename2 = ltp->output_files[i] + PATHSTR(".png");
-                v.outpath = output_filename2;
-#if _WIN32
-                fwprintf(stderr, L"image %ls has alpha channel ! %ls will output %ls\n", imagepath.c_str(), imagepath.c_str(), output_filename2.c_str());
-#else // _WIN32
-                fprintf(stderr, "image %s has alpha channel ! %s will output %s\n", imagepath.c_str(), imagepath.c_str(), output_filename2.c_str());
-#endif // _WIN32
-            }
-
-            toproc.put(v);
-        }
-        else
-        {
-#if _WIN32
-            fwprintf(stderr, L"decode image %ls failed\n", imagepath.c_str());
-#else // _WIN32
-            fprintf(stderr, "decode image %s failed\n", imagepath.c_str());
-#endif // _WIN32
-        }
-    }
-
-    return 0;
+static void VS_CC filterInit(VSMap *in, VSMap *out, void **instanceData, VSNode *node, VSCore *core, const VSAPI *vsapi)
+{
+  FilterData *d = static_cast<FilterData *>(*instanceData);
+  VSVideoInfo dst_vi = (VSVideoInfo) * (d->vi);
+  dst_vi.width = d->target_width;
+  dst_vi.height = d->target_height;
+  vsapi->setVideoInfo(&dst_vi, 1, node);
 }
 
-class ProcThreadParams
+static void process(const VSFrameRef *src, VSFrameRef *dst, const FilterData *const VS_RESTRICT d, const VSAPI *vsapi) noexcept
 {
-public:
-    const RealESRGAN* realesrgan;
-};
+  if (d->vi->format->colorFamily == cmRGB)
+  {
+    int src_width = vsapi->getFrameWidth(src, 0);
+    int src_height = vsapi->getFrameHeight(src, 0);
+    int src_stride = vsapi->getStride(src, 0) / sizeof(float);
+    int dst_stride = vsapi->getStride(dst, 0) / sizeof(float);
 
-void* proc(void* args)
-{
-    const ProcThreadParams* ptp = (const ProcThreadParams*)args;
-    const RealESRGAN* realesrgan = ptp->realesrgan;
+    const float *srcpR = reinterpret_cast<const float *>(vsapi->getReadPtr(src, 0));
+    const float *srcpG = reinterpret_cast<const float *>(vsapi->getReadPtr(src, 1));
+    const float *srcpB = reinterpret_cast<const float *>(vsapi->getReadPtr(src, 2));
 
-    for (;;)
-    {
-        Task v;
+    float *VS_RESTRICT dstpR = reinterpret_cast<float *>(vsapi->getWritePtr(dst, 0));
+    float *VS_RESTRICT dstpG = reinterpret_cast<float *>(vsapi->getWritePtr(dst, 1));
+    float *VS_RESTRICT dstpB = reinterpret_cast<float *>(vsapi->getWritePtr(dst, 2));
 
-        toproc.get(v);
-
-        if (v.id == -233)
-            break;
-
-        realesrgan->process(v.inimage, v.outimage);
-
-        tosave.put(v);
-    }
-
-    return 0;
+    d->gpuSemaphore->wait();
+    d->realesrgan->process(srcpR, srcpG, srcpB, dstpR, dstpG, dstpB, src_width, src_height, src_stride, dst_stride);
+    d->gpuSemaphore->signal();
+  }
 }
 
-class SaveThreadParams
+static const VSFrameRef *VS_CC filterGetFrame(int n, int activationReason, void **instancData, void **frameData, VSFrameContext *frameCtx, VSCore *core, const VSAPI *vsapi)
 {
-public:
-    int verbose;
-};
+  const FilterData *d = static_cast<const FilterData *>(*instancData);
 
-void* save(void* args)
-{
-    const SaveThreadParams* stp = (const SaveThreadParams*)args;
-    const int verbose = stp->verbose;
+  if (activationReason == arInitial)
+  {
+    vsapi->requestFrameFilter(n, d->node, frameCtx);
+  }
+  else if (activationReason == arAllFramesReady)
+  {
+    const VSFrameRef *src = vsapi->getFrameFilter(n, d->node, frameCtx);
+    VSFrameRef *dst = vsapi->newVideoFrame(d->vi->format, d->target_width, d->target_height, src, core);
 
-    for (;;)
-    {
-        Task v;
+    process(src, dst, d, vsapi);
 
-        tosave.get(v);
+    vsapi->freeFrame(src);
+    return dst;
+  }
 
-        if (v.id == -233)
-            break;
-
-        // free input pixel data
-        {
-            unsigned char* pixeldata = (unsigned char*)v.inimage.data;
-            if (v.webp == 1)
-            {
-                free(pixeldata);
-            }
-            else
-            {
-#if _WIN32
-                free(pixeldata);
-#else
-                stbi_image_free(pixeldata);
-#endif
-            }
-        }
-
-        int success = 0;
-
-        path_t ext = get_file_extension(v.outpath);
-
-        /* ----------- Create folder if not exists -------------------*/
-        fs::path fs_path = fs::absolute(v.outpath);
-        std::string parent_path = fs_path.parent_path().string();
-        if (fs::exists(parent_path) != 1){
-            std::cout << "Create folder: [" << parent_path << "]." << std::endl;
-            fs::create_directories(parent_path);
-        }
-
-        if (ext == PATHSTR("webp") || ext == PATHSTR("WEBP"))
-        {
-            success = webp_save(v.outpath.c_str(), v.outimage.w, v.outimage.h, v.outimage.elempack, (const unsigned char*)v.outimage.data);
-        }
-        else if (ext == PATHSTR("png") || ext == PATHSTR("PNG"))
-        {
-#if _WIN32
-            success = wic_encode_image(v.outpath.c_str(), v.outimage.w, v.outimage.h, v.outimage.elempack, v.outimage.data);
-#else
-            success = stbi_write_png(v.outpath.c_str(), v.outimage.w, v.outimage.h, v.outimage.elempack, v.outimage.data, 0);
-#endif
-        }
-        else if (ext == PATHSTR("jpg") || ext == PATHSTR("JPG") || ext == PATHSTR("jpeg") || ext == PATHSTR("JPEG"))
-        {
-#if _WIN32
-            success = wic_encode_jpeg_image(v.outpath.c_str(), v.outimage.w, v.outimage.h, v.outimage.elempack, v.outimage.data);
-#else
-            success = stbi_write_jpg(v.outpath.c_str(), v.outimage.w, v.outimage.h, v.outimage.elempack, v.outimage.data, 100);
-#endif
-        }
-        if (success)
-        {
-            if (verbose)
-            {
-#if _WIN32
-                fwprintf(stderr, L"%ls -> %ls done\n", v.inpath.c_str(), v.outpath.c_str());
-#else
-                fprintf(stderr, "%s -> %s done\n", v.inpath.c_str(), v.outpath.c_str());
-#endif
-            }
-        }
-        else
-        {
-#if _WIN32
-            fwprintf(stderr, L"encode image %ls failed\n", v.outpath.c_str());
-#else
-            fprintf(stderr, "encode image %s failed\n", v.outpath.c_str());
-#endif
-        }
-    }
-
-    return 0;
+  return nullptr;
 }
 
-
-#if _WIN32
-int wmain(int argc, wchar_t** argv)
-#else
-int main(int argc, char** argv)
-#endif
+static void VS_CC filterFree(void *instanceData, VSCore *core, const VSAPI *vsapi)
 {
-    path_t inputpath;
-    path_t outputpath;
-    int scale = 4;
-    std::vector<int> tilesize;
-    path_t model = PATHSTR("models");
-    path_t modelname = PATHSTR("realesr-animevideov3");
-    std::vector<int> gpuid;
-    int jobs_load = 1;
-    std::vector<int> jobs_proc;
-    int jobs_save = 2;
-    int verbose = 0;
-    int tta_mode = 0;
-    path_t format = PATHSTR("png");
+  FilterData *d = static_cast<FilterData *>(instanceData);
+  vsapi->freeNode(d->node);
 
-#if _WIN32
-    setlocale(LC_ALL, "");
-    wchar_t opt;
-    while ((opt = getopt(argc, argv, L"i:o:s:t:m:n:g:j:f:vxh")) != (wchar_t)-1)
-    {
-        switch (opt)
-        {
-        case L'i':
-            inputpath = optarg;
-            break;
-        case L'o':
-            outputpath = optarg;
-            break;
-        case L's':
-            scale = _wtoi(optarg);
-            break;
-        case L't':
-            tilesize = parse_optarg_int_array(optarg);
-            break;
-        case L'm':
-            model = optarg;
-            break;
-        case L'n':
-            modelname = optarg;
-            break;
-        case L'g':
-            gpuid = parse_optarg_int_array(optarg);
-            break;
-        case L'j':
-            swscanf(optarg, L"%d:%*[^:]:%d", &jobs_load, &jobs_save);
-            jobs_proc = parse_optarg_int_array(wcschr(optarg, L':') + 1);
-            break;
-        case L'f':
-            format = optarg;
-            break;
-        case L'v':
-            verbose = 1;
-            break;
-        case L'x':
-            tta_mode = 1;
-            break;
-        case L'h':
-        default:
-            print_usage();
-            return -1;
-        }
-    }
-#else // _WIN32
-    int opt;
-    while ((opt = getopt(argc, argv, "i:o:s:t:m:n:g:j:f:vxh")) != -1)
-    {
-        switch (opt)
-        {
-        case 'i':
-            inputpath = optarg;
-            break;
-        case 'o':
-            outputpath = optarg;
-            break;
-        case 's':
-            scale = atoi(optarg);
-            break;
-        case 't':
-            tilesize = parse_optarg_int_array(optarg);
-            break;
-        case 'm':
-            model = optarg;
-            break;
-        case 'n':
-            modelname = optarg;
-            break;
-        case 'g':
-            gpuid = parse_optarg_int_array(optarg);
-            break;
-        case 'j':
-            sscanf(optarg, "%d:%*[^:]:%d", &jobs_load, &jobs_save);
-            jobs_proc = parse_optarg_int_array(strchr(optarg, ':') + 1);
-            break;
-        case 'f':
-            format = optarg;
-            break;
-        case 'v':
-            verbose = 1;
-            break;
-        case 'x':
-            tta_mode = 1;
-            break;
-        case 'h':
-        default:
-            print_usage();
-            return -1;
-        }
-    }
-#endif // _WIN32
+  delete d->realesrgan;
+  delete d;
 
-    if (inputpath.empty() || outputpath.empty())
+  std::lock_guard<std::mutex> guard(g_lock);
+  g_filter_instance_count--;
+  if (g_filter_instance_count == 0)
+  {
+    ncnn::destroy_gpu_instance();
+    for (auto pair : g_gpu_semaphore)
     {
-        print_usage();
-        return -1;
+      delete pair.second;
+    }
+    g_gpu_semaphore.clear();
+  }
+}
+
+static void VS_CC filterCreate(const VSMap *in, VSMap *out, void *userData, VSCore *core, const VSAPI *vsapi)
+{
+  std::unique_ptr<FilterData> d = std::make_unique<FilterData>();
+  int err;
+
+  d->node = vsapi->propGetNode(in, "clip", 0, nullptr);
+  d->vi = vsapi->getVideoInfo(d->node);
+
+  {
+    std::lock_guard<std::mutex> guard(g_lock);
+
+    if (g_filter_instance_count == 0)
+    {
+      ncnn::create_gpu_instance();
     }
 
-    if (tilesize.size() != (gpuid.empty() ? 1 : gpuid.size()) && !tilesize.empty())
+    g_filter_instance_count++;
+  }
+
+  try
+  {
+    if (!isConstantFormat(d->vi) ||
+        d->vi->format->sampleType == stInteger ||
+        (d->vi->format->sampleType == stFloat && d->vi->format->bitsPerSample != 32))
+      throw std::string{"only constant format 32 bits float input supported"};
+
+    int scale = int64ToIntS(vsapi->propGetInt(in, "scale", 0, &err));
+    if (err || scale < 2)
+      scale = 2;
+    if (scale > 4)
+      throw std::string{"model is only supported up to 4x scale"};
+
+    d->target_width = d->vi->width * scale;
+    d->target_height = d->vi->height * scale;
+
+    // Model path
+    const std::string pluginPath{vsapi->getPluginPath(vsapi->getPluginById("com.vapoursynth.realesrgan", core))};
+    std::string paramPath{pluginPath.substr(0, pluginPath.find_last_of('/'))};
+    std::string modelPath{pluginPath.substr(0, pluginPath.find_last_of('/'))};
+
+    int model = int64ToIntS(vsapi->propGetInt(in, "model", 0, &err));
+    if (err)
+      model = 0;
+
+    /*
+    /usr/share/realesrgan-ncnn-vulkan/models/realesr-animevideov3-x2.bin
+    /usr/share/realesrgan-ncnn-vulkan/models/realesr-animevideov3-x2.param
+    /usr/share/realesrgan-ncnn-vulkan/models/realesr-animevideov3-x3.bin
+    /usr/share/realesrgan-ncnn-vulkan/models/realesr-animevideov3-x3.param
+    /usr/share/realesrgan-ncnn-vulkan/models/realesr-animevideov3-x4.bin
+    /usr/share/realesrgan-ncnn-vulkan/models/realesr-animevideov3-x4.param
+    /usr/share/realesrgan-ncnn-vulkan/models/realesrgan-x4plus-anime.bin
+    /usr/share/realesrgan-ncnn-vulkan/models/realesrgan-x4plus-anime.param
+    /usr/share/realesrgan-ncnn-vulkan/models/realesrgan-x4plus.bin
+    /usr/share/realesrgan-ncnn-vulkan/models/realesrgan-x4plus.param
+    /usr/share/realesrgan-ncnn-vulkan/models/realesrnet-x4plus.bin
+    /usr/share/realesrgan-ncnn-vulkan/models/realesrnet-x4plus.param
+    */
+    if (model == 0)
     {
-        fprintf(stderr, "invalid tilesize argument\n");
-        return -1;
+      paramPath += std::format("/models/realesr-animevideov3-x{}.param", scale).c_str();
+      modelPath += std::format("/models/realesr-animevideov3-x{}.bin", scale).c_str();
     }
-
-    for (int i=0; i<(int)tilesize.size(); i++)
+    else if (model == 1)
     {
-        if (tilesize[i] != 0 && tilesize[i] < 32)
-        {
-            fprintf(stderr, "invalid tilesize argument\n");
-            return -1;
-        }
+      paramPath += "/models/realesrgan-x4plus-anime.param";
+      modelPath += "/models/realesrgan-x4plus-anime.bin";
     }
-
-    if (jobs_load < 1 || jobs_save < 1)
+    else if (model == 2)
     {
-        fprintf(stderr, "invalid thread count argument\n");
-        return -1;
-    }
-
-    if (jobs_proc.size() != (gpuid.empty() ? 1 : gpuid.size()) && !jobs_proc.empty())
-    {
-        fprintf(stderr, "invalid jobs_proc thread count argument\n");
-        return -1;
-    }
-
-    for (int i=0; i<(int)jobs_proc.size(); i++)
-    {
-        if (jobs_proc[i] < 1)
-        {
-            fprintf(stderr, "invalid jobs_proc thread count argument\n");
-            return -1;
-        }
-    }
-
-    if (!path_is_directory(outputpath))
-    {
-        // guess format from outputpath no matter what format argument specified
-        path_t ext = get_file_extension(outputpath);
-
-        if (ext == PATHSTR("png") || ext == PATHSTR("PNG"))
-        {
-            format = PATHSTR("png");
-        }
-        else if (ext == PATHSTR("webp") || ext == PATHSTR("WEBP"))
-        {
-            format = PATHSTR("webp");
-        }
-        else if (ext == PATHSTR("jpg") || ext == PATHSTR("JPG") || ext == PATHSTR("jpeg") || ext == PATHSTR("JPEG"))
-        {
-            format = PATHSTR("jpg");
-        }
-        else
-        {
-            fprintf(stderr, "invalid outputpath extension type\n");
-            return -1;
-        }
-    }
-
-    if (format != PATHSTR("png") && format != PATHSTR("webp") && format != PATHSTR("jpg"))
-    {
-        fprintf(stderr, "invalid format argument\n");
-        return -1;
-    }
-
-    // collect input and output filepath
-    std::vector<path_t> input_files;
-    std::vector<path_t> output_files;
-    {
-        if (path_is_directory(inputpath) && path_is_directory(outputpath))
-        {
-            std::vector<path_t> filenames;
-            int lr = list_directory(inputpath, filenames);
-            if (lr != 0)
-                return -1;
-
-            const int count = filenames.size();
-            input_files.resize(count);
-            output_files.resize(count);
-
-            path_t last_filename;
-            path_t last_filename_noext;
-            for (int i=0; i<count; i++)
-            {
-                path_t filename = filenames[i];
-                path_t filename_noext = get_file_name_without_extension(filename);
-                path_t output_filename = filename_noext + PATHSTR('.') + format;
-
-                // filename list is sorted, check if output image path conflicts
-                if (filename_noext == last_filename_noext)
-                {
-                    path_t output_filename2 = filename + PATHSTR('.') + format;
-#if _WIN32
-                    fwprintf(stderr, L"both %ls and %ls output %ls ! %ls will output %ls\n", filename.c_str(), last_filename.c_str(), output_filename.c_str(), filename.c_str(), output_filename2.c_str());
-#else
-                    fprintf(stderr, "both %s and %s output %s ! %s will output %s\n", filename.c_str(), last_filename.c_str(), output_filename.c_str(), filename.c_str(), output_filename2.c_str());
-#endif
-                    output_filename = output_filename2;
-                }
-                else
-                {
-                    last_filename = filename;
-                    last_filename_noext = filename_noext;
-                }
-
-                input_files[i] = inputpath + PATHSTR('/') + filename;
-                output_files[i] = outputpath + PATHSTR('/') + output_filename;
-            }
-        }
-        else if (!path_is_directory(inputpath) && !path_is_directory(outputpath))
-        {
-            input_files.push_back(inputpath);
-            output_files.push_back(outputpath);
-        }
-        else
-        {
-            fprintf(stderr, "inputpath and outputpath must be either file or directory at the same time\n");
-            return -1;
-        }
-    }
-
-    int prepadding = 0;
-
-    if (model.find(PATHSTR("models")) != path_t::npos
-        || model.find(PATHSTR("models2")) != path_t::npos)
-    {
-        prepadding = 10;
+      paramPath += "/models/realesrgan-x4plus.param";
+      modelPath += "/models/realesrgan-x4plus.bin";
     }
     else
+      throw std::string{"invalid model type. Try 0, 1, 2"};
+
+    // Check model file readable
+    std::ifstream pf(paramPath);
+    std::ifstream mf(modelPath);
+    if (!pf.good() || !mf.good())
+      throw std::string{"can't open model file"};
+
+    // GPU id
+    int gpuId = int64ToIntS(vsapi->propGetInt(in, "gpu_id", 0, &err));
+    if (err)
+      gpuId = 0;
+    if (gpuId < 0 || gpuId >= ncnn::get_gpu_count())
+      throw std::string{"invalid 'gpu_id'"};
+
+    // Tile size
+    int tilesize = int64ToIntS(vsapi->propGetInt(in, "tilesize", 0, &err));
+    if (err)
+      tilesize = 100;
+    if (tilesize != 0 && tilesize < 32)
+      throw std::string{"tilesize must be >= 32 or set as 0"};
+
+    int tilesize_y = int64ToIntS(vsapi->propGetInt(in, "tilesize_y", 0, &err));
+    if (err)
+      tilesize_y = tilesize;
+    if (tilesize_y != 0 && tilesize_y < 32)
+      throw std::string{"tilesize_y must be >= 32 or set as 0"};
+
+    // More fine-grained tilesize policy here
+    uint32_t heap_budget = ncnn::get_gpu_device(gpuId)->get_heap_budget();
+    if (tilesize == 0)
     {
-        fprintf(stderr, "unknown model dir type\n");
-        return -1;
+      if (heap_budget > 2600)
+        tilesize = 400;
+      else if (heap_budget > 740)
+        tilesize = 200;
+      else if (heap_budget > 250)
+        tilesize = 100;
+      else
+        tilesize = 32;
     }
 
-    // if (modelname.find(PATHSTR("realesrgan-x4plus")) != path_t::npos
-    //     || modelname.find(PATHSTR("realesrnet-x4plus")) != path_t::npos
-    //     || modelname.find(PATHSTR("esrgan-x4")) != path_t::npos)
-    // {}
-    // else
-    // {
-    //     fprintf(stderr, "unknown model name\n");
-    //     return -1;
-    // }
+    int gpuThread;
+    int customGpuThread = int64ToIntS(vsapi->propGetInt(in, "gpu_thread", 0, &err));
+    if (customGpuThread > 0)
+      gpuThread = customGpuThread;
+    else
+      gpuThread = int64ToIntS(ncnn::get_gpu_info(gpuId).transfer_queue_count());
+    gpuThread = std::min(gpuThread, int64ToIntS(ncnn::get_gpu_info(gpuId).compute_queue_count()));
 
-#if _WIN32
-    wchar_t parampath[256];
-    wchar_t modelpath[256];
+    std::lock_guard<std::mutex> guard(g_lock);
+    if (!g_gpu_semaphore.count(gpuId))
+      g_gpu_semaphore.insert(std::pair<int, Semaphore *>(gpuId, new Semaphore(gpuThread)));
+    d->gpuSemaphore = g_gpu_semaphore.at(gpuId);
 
-    if (modelname == PATHSTR("realesr-animevideov3"))
+    bool tta = !!vsapi->propGetInt(in, "tta", 0, &err);
+
+    d->realesrgan = new RealESRGAN(gpuId, tta);
+    d->realesrgan->scale = scale;
+    d->realesrgan->tilesize = tilesize;
+    d->realesrgan->prepadding = 10;
+    d->realesrgan->load(paramPath, modelPath);
+  }
+  catch (const std::string &error)
+  {
     {
-        swprintf(parampath, 256, L"%s/%s-x%s.param", model.c_str(), modelname.c_str(), std::to_string(scale));
-        swprintf(modelpath, 256, L"%s/%s-x%s.bin", model.c_str(), modelname.c_str(), std::to_string(scale));
-    }
-    else{
-        swprintf(parampath, 256, L"%s/%s.param", model.c_str(), modelname.c_str());
-        swprintf(modelpath, 256, L"%s/%s.bin", model.c_str(), modelname.c_str());
-    }
+      std::lock_guard<std::mutex> guard(g_lock);
 
-#else
-    char parampath[256];
-    char modelpath[256];
-
-    if (modelname == PATHSTR("realesr-animevideov3"))
-    {
-        sprintf(parampath, "%s/%s-x%s.param", model.c_str(), modelname.c_str(), std::to_string(scale).c_str());
-        sprintf(modelpath, "%s/%s-x%s.bin", model.c_str(), modelname.c_str(), std::to_string(scale).c_str());
-    }
-    else{
-        sprintf(parampath, "%s/%s.param", model.c_str(), modelname.c_str());
-        sprintf(modelpath, "%s/%s.bin", model.c_str(), modelname.c_str());
-    }
-#endif
-
-    path_t paramfullpath = sanitize_filepath(parampath);
-    path_t modelfullpath = sanitize_filepath(modelpath);
-
-#if _WIN32
-    CoInitializeEx(NULL, COINIT_MULTITHREADED);
-#endif
-
-    ncnn::create_gpu_instance();
-
-    if (gpuid.empty())
-    {
-        gpuid.push_back(ncnn::get_default_gpu_index());
+      g_filter_instance_count--;
+      if (g_filter_instance_count == 0)
+        ncnn::destroy_gpu_instance();
     }
 
-    const int use_gpu_count = (int)gpuid.size();
+    vsapi->setError(out, ("RealESRGAN: " + error).c_str());
+    vsapi->freeNode(d->node);
+    return;
+  }
 
-    if (jobs_proc.empty())
-    {
-        jobs_proc.resize(use_gpu_count, 2);
-    }
+  vsapi->createFilter(in, out, "RealESRGAN", filterInit, filterGetFrame, filterFree, fmParallel, 0, d.release(), core);
+}
 
-    if (tilesize.empty())
-    {
-        tilesize.resize(use_gpu_count, 0);
-    }
-
-    int cpu_count = std::max(1, ncnn::get_cpu_count());
-    jobs_load = std::min(jobs_load, cpu_count);
-    jobs_save = std::min(jobs_save, cpu_count);
-
-    int gpu_count = ncnn::get_gpu_count();
-    for (int i=0; i<use_gpu_count; i++)
-    {
-        if (gpuid[i] < 0 || gpuid[i] >= gpu_count)
-        {
-            fprintf(stderr, "invalid gpu device\n");
-
-            ncnn::destroy_gpu_instance();
-            return -1;
-        }
-    }
-
-    int total_jobs_proc = 0;
-    for (int i=0; i<use_gpu_count; i++)
-    {
-        int gpu_queue_count = ncnn::get_gpu_info(gpuid[i]).compute_queue_count();
-        jobs_proc[i] = std::min(jobs_proc[i], gpu_queue_count);
-        total_jobs_proc += jobs_proc[i];
-    }
-
-    for (int i=0; i<use_gpu_count; i++)
-    {
-        if (tilesize[i] != 0)
-            continue;
-
-        uint32_t heap_budget = ncnn::get_gpu_device(gpuid[i])->get_heap_budget();
-
-        // more fine-grained tilesize policy here
-        if (model.find(PATHSTR("models")) != path_t::npos)
-        {
-            if (heap_budget > 1900)
-                tilesize[i] = 200;
-            else if (heap_budget > 550)
-                tilesize[i] = 100;
-            else if (heap_budget > 190)
-                tilesize[i] = 64;
-            else
-                tilesize[i] = 32;
-        }
-    }
-
-    {
-        std::vector<RealESRGAN*> realesrgan(use_gpu_count);
-
-        for (int i=0; i<use_gpu_count; i++)
-        {
-            realesrgan[i] = new RealESRGAN(gpuid[i], tta_mode);
-
-            realesrgan[i]->load(paramfullpath, modelfullpath);
-
-            realesrgan[i]->scale = scale;
-            realesrgan[i]->tilesize = tilesize[i];
-            realesrgan[i]->prepadding = prepadding;
-        }
-
-        // main routine
-        {
-            // load image
-            LoadThreadParams ltp;
-            ltp.scale = scale;
-            ltp.jobs_load = jobs_load;
-            ltp.input_files = input_files;
-            ltp.output_files = output_files;
-
-            ncnn::Thread load_thread(load, (void*)&ltp);
-
-            // realesrgan proc
-            std::vector<ProcThreadParams> ptp(use_gpu_count);
-            for (int i=0; i<use_gpu_count; i++)
-            {
-                ptp[i].realesrgan = realesrgan[i];
-            }
-
-            std::vector<ncnn::Thread*> proc_threads(total_jobs_proc);
-            {
-                int total_jobs_proc_id = 0;
-                for (int i=0; i<use_gpu_count; i++)
-                {
-                    for (int j=0; j<jobs_proc[i]; j++)
-                    {
-                        proc_threads[total_jobs_proc_id++] = new ncnn::Thread(proc, (void*)&ptp[i]);
-                    }
-                }
-            }
-
-            // save image
-            SaveThreadParams stp;
-            stp.verbose = verbose;
-
-            std::vector<ncnn::Thread*> save_threads(jobs_save);
-            for (int i=0; i<jobs_save; i++)
-            {
-                save_threads[i] = new ncnn::Thread(save, (void*)&stp);
-            }
-
-            // end
-            load_thread.join();
-
-            Task end;
-            end.id = -233;
-
-            for (int i=0; i<total_jobs_proc; i++)
-            {
-                toproc.put(end);
-            }
-
-            for (int i=0; i<total_jobs_proc; i++)
-            {
-                proc_threads[i]->join();
-                delete proc_threads[i];
-            }
-
-            for (int i=0; i<jobs_save; i++)
-            {
-                tosave.put(end);
-            }
-
-            for (int i=0; i<jobs_save; i++)
-            {
-                save_threads[i]->join();
-                delete save_threads[i];
-            }
-        }
-
-        for (int i=0; i<use_gpu_count; i++)
-        {
-            delete realesrgan[i];
-        }
-        realesrgan.clear();
-    }
-
-    ncnn::destroy_gpu_instance();
-
-    return 0;
+VS_EXTERNAL_API(void)
+VapourSynthPluginInit(VSConfigPlugin configFunc, VSRegisterFunction registerFunc, VSPlugin *plugin)
+{
+  configFunc("com.vapoursynth.realesrgan", "esrgan", "RealESRGAN ncnn Vulkan plugin", VAPOURSYNTH_API_VERSION, 1, plugin);
+  registerFunc("RealESRGAN",
+               "clip:clip;"
+               "scale:int:opt;"
+               "tilesize:int:opt;"
+               "model:int:opt;"
+               "gpu_id:int:opt;"
+               "gpu_thread:int:opt;"
+               "tta:int:opt",
+               filterCreate, 0, plugin);
 }

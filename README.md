@@ -1,12 +1,16 @@
-# Real-ESRGAN ncnn Vulkan
+# VapourSynth-Real-ESRGAN ncnn Vulkan
 
-![CI](https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan/workflows/CI/badge.svg)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan/blob/master/LICENSE)
-[![Open issue](https://img.shields.io/github/issues/xinntao/Real-ESRGAN-ncnn-vulkan)](https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan/issues)
-[![Closed issue](https://img.shields.io/github/issues-closed/xinntao/Real-ESRGAN-ncnn-vulkan)](https://github.com/xinntao/Real-ESRGAN-ncnn-vulkan/issues)
+Based on [VapourSynth-SRMD-ncnn-Vulkan](https://github.com/Kiyamou/VapourSynth-SRMD-ncnn-Vulkan)
+
+Original readme below:
+
+![CI](https://github.com/Tatsh/VapourSynht-Real-ESRGAN-ncnn-vulkan/workflows/CI/badge.svg)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/Tatsh/VapourSynth-Real-ESRGAN-ncnn-vulkan/blob/master/LICENSE)
+[![Open issue](https://img.shields.io/github/issues/Tatsh/Real-ESRGAN-ncnn-vulkan)](https://github.com/Tatsh/VapourSynth-Real-ESRGAN-ncnn-vulkan/issues)
+[![Closed issue](https://img.shields.io/github/issues-closed/Tatsh/VapourSynth-Real-ESRGAN-ncnn-vulkan)](https://github.com/Tatsh/VapopurSynth-Real-ESRGAN-ncnn-vulkan/issues)
 
 This project is the [ncnn](https://github.com/Tencent/ncnn) implementation of [**Real-ESRGAN**](https://github.com/xinntao/Real-ESRGAN).
-*Real-ESRGAN ncnn Vulkan* heavily borrows from [realsr-ncnn-vulkan](https://github.com/nihui/realsr-ncnn-vulkan).
+_Real-ESRGAN ncnn Vulkan_ heavily borrows from [realsr-ncnn-vulkan](https://github.com/nihui/realsr-ncnn-vulkan).
 Many thanks to [nihui](https://github.com/nihui), [ncnn](https://github.com/Tencent/ncnn) and [realsr-ncnn-vulkan](https://github.com/nihui/realsr-ncnn-vulkan) :grin:
 
 Real-ESRGAN aims at developing **Practical Algorithms for General Image Restoration**. We also optimize it for anime images.
@@ -28,20 +32,19 @@ Other recommended projects:<br>
 
 ### :book: Real-ESRGAN: Training Real-World Blind Super-Resolution with Pure Synthetic Data
 
-> [[Paper](https://arxiv.org/abs/2107.10833)] &emsp; [Project Page] &emsp; [Demo] <br>
-> [Xintao Wang](https://xinntao.github.io/), Liangbin Xie, [Chao Dong](https://scholar.google.com.hk/citations?user=OSDCB0UAAAAJ), [Ying Shan](https://scholar.google.com/citations?user=4oXBp9UAAAAJ&hl=en) <br>
+> [[Paper](https://arxiv.org/abs/2107.10833)] &emsp; [Project Page] &emsp; [Demo] <br> > [Xintao Wang](https://xinntao.github.io/), Liangbin Xie, [Chao Dong](https://scholar.google.com.hk/citations?user=OSDCB0UAAAAJ), [Ying Shan](https://scholar.google.com/citations?user=4oXBp9UAAAAJ&hl=en) <br>
 > Tencent ARC Lab; Shenzhen Institutes of Advanced Technology, Chinese Academy of Sciences
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/xinntao/Real-ESRGAN/master/assets/teaser.jpg">
+  <img src="https://raw.githubusercontent.com/Tatsh/Real-ESRGAN/master/assets/teaser.jpg">
 </p>
 <p align="center">
-  <img src="https://raw.githubusercontent.com/xinntao/public-figures/master/Real-ESRGAN/cmp_realesrgan_anime_1.png">
+  <img src="https://raw.githubusercontent.com/Tatsh/public-figures/master/Real-ESRGAN/cmp_realesrgan_anime_1.png">
 </p>
 
 ## :hourglass_flowing_sand: TODO List
 
-- [ ] Support further cheap arbitrary resize (*e.g.*, bicubic, bilinear) for the model outputs
+- [ ] Support further cheap arbitrary resize (_e.g._, bicubic, bilinear) for the model outputs
 - [ ] Bug: Some PCs will output black images
 - [ ] Add the guidance for ncnn model conversion
 - [ ] Support face restoration - GFPGAN
@@ -81,16 +84,16 @@ Usage: realesrgan-ncnn-vulkan.exe -i infile -o outfile [options]...
 
 If you encounter crash or error, try to upgrade your GPU driver
 
-- Intel: https://downloadcenter.intel.com/product/80939/Graphics-Drivers
-- AMD: https://www.amd.com/en/support
-- NVIDIA: https://www.nvidia.com/Download/index.aspx
+- Intel: <https://downloadcenter.intel.com/product/80939/Graphics-Drivers>
+- AMD: <https://www.amd.com/en/support>
+- NVIDIA: <https://www.nvidia.com/Download/index.aspx>
 
 ## :earth_asia: Other Open-Source Code Used
 
-- https://github.com/Tencent/ncnn for fast neural network inference on ALL PLATFORMS
-- https://github.com/webmproject/libwebp for encoding and decoding Webp images on ALL PLATFORMS
-- https://github.com/nothings/stb for decoding and encoding image on Linux / MacOS
-- https://github.com/tronkko/dirent for listing files in directory on Windows
+- <https://github.com/Tencent/ncnn> for fast neural network inference on ALL PLATFORMS
+- <https://github.com/webmproject/libwebp> for encoding and decoding Webp images on ALL PLATFORMS
+- <https://github.com/nothings/stb> for decoding and encoding image on Linux / MacOS
+- <https://github.com/tronkko/dirent> for listing files in directory on Windows
 
 ## :scroll: BibTeX
 

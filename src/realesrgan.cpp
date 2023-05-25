@@ -49,7 +49,7 @@ RealESRGAN::RealESRGAN(int gpuid, bool _tta_mode)
     net.opt.use_fp16_packed = true;
     net.opt.use_fp16_storage = true;
     net.opt.use_fp16_arithmetic = false;
-    net.opt.use_int8_storage = true;
+    net.opt.use_int8_storage = false;
     net.opt.use_int8_arithmetic = false;
 
     net.set_vulkan_device(gpuid);
@@ -204,13 +204,10 @@ int RealESRGAN::load(const std::string& parampath, const std::string& modelpath)
     return 0;
 }
 
-int RealESRGAN::process(const ncnn::Mat& inimage, ncnn::Mat& outimage) const
-{
-    const unsigned char* pixeldata = (const unsigned char*)inimage.data;
-    const int w = inimage.w;
-    const int h = inimage.h;
-    const int channels = inimage.elempack;
+constexpr int CHANNELS = 3;
 
+int RealESRGAN::process(const float* srcpR, const float* srcpG, const float* srcpB, float* dstpR, float* dstpG, float* dstpB, int width, int height, int src_stride, int dst_stride) const
+{
     const int TILE_SIZE_X = tilesize;
     const int TILE_SIZE_Y = tilesize;
 
@@ -223,41 +220,37 @@ int RealESRGAN::process(const ncnn::Mat& inimage, ncnn::Mat& outimage) const
     opt.staging_vkallocator = staging_vkallocator;
 
     // each tile 100x100
-    const int xtiles = (w + TILE_SIZE_X - 1) / TILE_SIZE_X;
-    const int ytiles = (h + TILE_SIZE_Y - 1) / TILE_SIZE_Y;
+    const int xtiles = (width + TILE_SIZE_X - 1) / TILE_SIZE_X;
+    const int ytiles = (height + TILE_SIZE_Y - 1) / TILE_SIZE_Y;
 
     const size_t in_out_tile_elemsize = opt.use_fp16_storage ? 2u : 4u;
 
     //#pragma omp parallel for num_threads(2)
     for (int yi = 0; yi < ytiles; yi++)
     {
-        const int tile_h_nopad = std::min((yi + 1) * TILE_SIZE_Y, h) - yi * TILE_SIZE_Y;
+        const int tile_h_nopad = std::min((yi + 1) * TILE_SIZE_Y, height) - yi * TILE_SIZE_Y;
 
         int in_tile_y0 = std::max(yi * TILE_SIZE_Y - prepadding, 0);
-        int in_tile_y1 = std::min((yi + 1) * TILE_SIZE_Y + prepadding, h);
+        int in_tile_y1 = std::min((yi + 1) * TILE_SIZE_Y + prepadding, height);
+        const int in_tile_w = width;
+        const int in_tile_h = in_tile_y1 - in_tile_y0;
 
         ncnn::Mat in;
-        if (opt.use_fp16_storage && opt.use_int8_storage)
+        in.create(in_tile_w, in_tile_h, CHANNELS, sizeof(float));
+
+        float* in_tile_r = in.channel(0);
+        float* in_tile_g = in.channel(1);
+        float* in_tile_b = in.channel(2);
+        const float* sr = srcpR + in_tile_y0 * src_stride;
+        const float* sg = srcpG + in_tile_y0 * src_stride;
+        const float* sb = srcpB + in_tile_y0 * src_stride;
+        for (int y = 0; y < in_tile_h; y++)
         {
-            in = ncnn::Mat(w, (in_tile_y1 - in_tile_y0), (unsigned char*)pixeldata + in_tile_y0 * w * channels, (size_t)channels, 1);
-        }
-        else
-        {
-            if (channels == 3)
+            for (int x = 0; x < in_tile_w; x++)
             {
-#if _WIN32
-                in = ncnn::Mat::from_pixels(pixeldata + in_tile_y0 * w * channels, ncnn::Mat::PIXEL_BGR2RGB, w, (in_tile_y1 - in_tile_y0));
-#else
-                in = ncnn::Mat::from_pixels(pixeldata + in_tile_y0 * w * channels, ncnn::Mat::PIXEL_RGB, w, (in_tile_y1 - in_tile_y0));
-#endif
-            }
-            if (channels == 4)
-            {
-#if _WIN32
-                in = ncnn::Mat::from_pixels(pixeldata + in_tile_y0 * w * channels, ncnn::Mat::PIXEL_BGRA2RGBA, w, (in_tile_y1 - in_tile_y0));
-#else
-                in = ncnn::Mat::from_pixels(pixeldata + in_tile_y0 * w * channels, ncnn::Mat::PIXEL_RGBA, w, (in_tile_y1 - in_tile_y0));
-#endif
+                in_tile_r[in_tile_w * y + x] = sr[src_stride * y + x] * 255.f;
+                in_tile_g[in_tile_w * y + x] = sg[src_stride * y + x] * 255.f;
+                in_tile_b[in_tile_w * y + x] = sb[src_stride * y + x] * 255.f;
             }
         }
 
@@ -276,21 +269,14 @@ int RealESRGAN::process(const ncnn::Mat& inimage, ncnn::Mat& outimage) const
         }
 
         int out_tile_y0 = std::max(yi * TILE_SIZE_Y, 0);
-        int out_tile_y1 = std::min((yi + 1) * TILE_SIZE_Y, h);
+        int out_tile_y1 = std::min((yi + 1) * TILE_SIZE_Y, height);
 
         ncnn::VkMat out_gpu;
-        if (opt.use_fp16_storage && opt.use_int8_storage)
-        {
-            out_gpu.create(w * scale, (out_tile_y1 - out_tile_y0) * scale, (size_t)channels, 1, blob_vkallocator);
-        }
-        else
-        {
-            out_gpu.create(w * scale, (out_tile_y1 - out_tile_y0) * scale, channels, (size_t)4u, 1, blob_vkallocator);
-        }
+        out_gpu.create(width * scale, (out_tile_y1 - out_tile_y0) * scale, CHANNELS, sizeof(float), blob_vkallocator);
 
         for (int xi = 0; xi < xtiles; xi++)
         {
-            const int tile_w_nopad = std::min((xi + 1) * TILE_SIZE_X, w) - xi * TILE_SIZE_X;
+            const int tile_w_nopad = std::min((xi + 1) * TILE_SIZE_X, width) - xi * TILE_SIZE_X;
 
             if (tta_mode)
             {
@@ -300,23 +286,18 @@ int RealESRGAN::process(const ncnn::Mat& inimage, ncnn::Mat& outimage) const
                 {
                     // crop tile
                     int tile_x0 = xi * TILE_SIZE_X - prepadding;
-                    int tile_x1 = std::min((xi + 1) * TILE_SIZE_X, w) + prepadding;
+                    int tile_x1 = std::min((xi + 1) * TILE_SIZE_X, width) + prepadding;
                     int tile_y0 = yi * TILE_SIZE_Y - prepadding;
-                    int tile_y1 = std::min((yi + 1) * TILE_SIZE_Y, h) + prepadding;
+                    int tile_y1 = std::min((yi + 1) * TILE_SIZE_Y, height) + prepadding;
 
-                    in_tile_gpu[0].create(tile_x1 - tile_x0, tile_y1 - tile_y0, 3, in_out_tile_elemsize, 1, blob_vkallocator);
-                    in_tile_gpu[1].create(tile_x1 - tile_x0, tile_y1 - tile_y0, 3, in_out_tile_elemsize, 1, blob_vkallocator);
-                    in_tile_gpu[2].create(tile_x1 - tile_x0, tile_y1 - tile_y0, 3, in_out_tile_elemsize, 1, blob_vkallocator);
-                    in_tile_gpu[3].create(tile_x1 - tile_x0, tile_y1 - tile_y0, 3, in_out_tile_elemsize, 1, blob_vkallocator);
-                    in_tile_gpu[4].create(tile_y1 - tile_y0, tile_x1 - tile_x0, 3, in_out_tile_elemsize, 1, blob_vkallocator);
-                    in_tile_gpu[5].create(tile_y1 - tile_y0, tile_x1 - tile_x0, 3, in_out_tile_elemsize, 1, blob_vkallocator);
-                    in_tile_gpu[6].create(tile_y1 - tile_y0, tile_x1 - tile_x0, 3, in_out_tile_elemsize, 1, blob_vkallocator);
-                    in_tile_gpu[7].create(tile_y1 - tile_y0, tile_x1 - tile_x0, 3, in_out_tile_elemsize, 1, blob_vkallocator);
-
-                    if (channels == 4)
-                    {
-                        in_alpha_tile_gpu.create(tile_w_nopad, tile_h_nopad, 1, in_out_tile_elemsize, 1, blob_vkallocator);
-                    }
+                    in_tile_gpu[0].create(tile_x1 - tile_x0, tile_y1 - tile_y0, CHANNELS, in_out_tile_elemsize, 1, blob_vkallocator);
+                    in_tile_gpu[1].create(tile_x1 - tile_x0, tile_y1 - tile_y0, CHANNELS, in_out_tile_elemsize, 1, blob_vkallocator);
+                    in_tile_gpu[2].create(tile_x1 - tile_x0, tile_y1 - tile_y0, CHANNELS, in_out_tile_elemsize, 1, blob_vkallocator);
+                    in_tile_gpu[3].create(tile_x1 - tile_x0, tile_y1 - tile_y0, CHANNELS, in_out_tile_elemsize, 1, blob_vkallocator);
+                    in_tile_gpu[4].create(tile_y1 - tile_y0, tile_x1 - tile_x0, CHANNELS, in_out_tile_elemsize, 1, blob_vkallocator);
+                    in_tile_gpu[5].create(tile_y1 - tile_y0, tile_x1 - tile_x0, CHANNELS, in_out_tile_elemsize, 1, blob_vkallocator);
+                    in_tile_gpu[6].create(tile_y1 - tile_y0, tile_x1 - tile_x0, CHANNELS, in_out_tile_elemsize, 1, blob_vkallocator);
+                    in_tile_gpu[7].create(tile_y1 - tile_y0, tile_x1 - tile_x0, CHANNELS, in_out_tile_elemsize, 1, blob_vkallocator);
 
                     std::vector<ncnn::VkMat> bindings(10);
                     bindings[0] = in_gpu;
@@ -341,14 +322,14 @@ int RealESRGAN::process(const ncnn::Mat& inimage, ncnn::Mat& outimage) const
                     constants[7].i = prepadding;
                     constants[8].i = xi * TILE_SIZE_X;
                     constants[9].i = std::min(yi * TILE_SIZE_Y, prepadding);
-                    constants[10].i = channels;
+                    constants[10].i = CHANNELS;
                     constants[11].i = in_alpha_tile_gpu.w;
                     constants[12].i = in_alpha_tile_gpu.h;
 
                     ncnn::VkMat dispatcher;
                     dispatcher.w = in_tile_gpu[0].w;
                     dispatcher.h = in_tile_gpu[0].h;
-                    dispatcher.c = channels;
+                    dispatcher.c = CHANNELS;
 
                     cmd.record_pipeline(realesrgan_preproc, bindings, constants, dispatcher);
                 }
@@ -374,25 +355,6 @@ int RealESRGAN::process(const ncnn::Mat& inimage, ncnn::Mat& outimage) const
                 }
 
                 ncnn::VkMat out_alpha_tile_gpu;
-                if (channels == 4)
-                {
-                    if (scale == 1)
-                    {
-                        out_alpha_tile_gpu = in_alpha_tile_gpu;
-                    }
-                    if (scale == 2)
-                    {
-                        bicubic_2x->forward(in_alpha_tile_gpu, out_alpha_tile_gpu, cmd, opt);
-                    }
-                    if (scale == 3)
-                    {
-                        bicubic_3x->forward(in_alpha_tile_gpu, out_alpha_tile_gpu, cmd, opt);
-                    }
-                    if (scale == 4)
-                    {
-                        bicubic_4x->forward(in_alpha_tile_gpu, out_alpha_tile_gpu, cmd, opt);
-                    }
-                }
 
                 // postproc
                 {
@@ -419,14 +381,14 @@ int RealESRGAN::process(const ncnn::Mat& inimage, ncnn::Mat& outimage) const
                     constants[7].i = std::min(TILE_SIZE_X * scale, out_gpu.w - xi * TILE_SIZE_X * scale);
                     constants[8].i = prepadding * scale;
                     constants[9].i = prepadding * scale;
-                    constants[10].i = channels;
+                    constants[10].i = CHANNELS;
                     constants[11].i = out_alpha_tile_gpu.w;
                     constants[12].i = out_alpha_tile_gpu.h;
 
                     ncnn::VkMat dispatcher;
                     dispatcher.w = std::min(TILE_SIZE_X * scale, out_gpu.w - xi * TILE_SIZE_X * scale);
                     dispatcher.h = out_gpu.h;
-                    dispatcher.c = channels;
+                    dispatcher.c = CHANNELS;
 
                     cmd.record_pipeline(realesrgan_postproc, bindings, constants, dispatcher);
                 }
@@ -439,16 +401,11 @@ int RealESRGAN::process(const ncnn::Mat& inimage, ncnn::Mat& outimage) const
                 {
                     // crop tile
                     int tile_x0 = xi * TILE_SIZE_X - prepadding;
-                    int tile_x1 = std::min((xi + 1) * TILE_SIZE_X, w) + prepadding;
+                    int tile_x1 = std::min((xi + 1) * TILE_SIZE_X, width) + prepadding;
                     int tile_y0 = yi * TILE_SIZE_Y - prepadding;
-                    int tile_y1 = std::min((yi + 1) * TILE_SIZE_Y, h) + prepadding;
+                    int tile_y1 = std::min((yi + 1) * TILE_SIZE_Y, height) + prepadding;
 
                     in_tile_gpu.create(tile_x1 - tile_x0, tile_y1 - tile_y0, 3, in_out_tile_elemsize, 1, blob_vkallocator);
-
-                    if (channels == 4)
-                    {
-                        in_alpha_tile_gpu.create(tile_w_nopad, tile_h_nopad, 1, in_out_tile_elemsize, 1, blob_vkallocator);
-                    }
 
                     std::vector<ncnn::VkMat> bindings(3);
                     bindings[0] = in_gpu;
@@ -466,14 +423,14 @@ int RealESRGAN::process(const ncnn::Mat& inimage, ncnn::Mat& outimage) const
                     constants[7].i = prepadding;
                     constants[8].i = xi * TILE_SIZE_X;
                     constants[9].i = std::min(yi * TILE_SIZE_Y, prepadding);
-                    constants[10].i = channels;
+                    constants[10].i = CHANNELS;
                     constants[11].i = in_alpha_tile_gpu.w;
                     constants[12].i = in_alpha_tile_gpu.h;
 
                     ncnn::VkMat dispatcher;
                     dispatcher.w = in_tile_gpu.w;
                     dispatcher.h = in_tile_gpu.h;
-                    dispatcher.c = channels;
+                    dispatcher.c = CHANNELS;
 
                     cmd.record_pipeline(realesrgan_preproc, bindings, constants, dispatcher);
                 }
@@ -492,26 +449,7 @@ int RealESRGAN::process(const ncnn::Mat& inimage, ncnn::Mat& outimage) const
                     ex.extract("output", out_tile_gpu, cmd);
                 }
 
-                ncnn::VkMat out_alpha_tile_gpu;
-                if (channels == 4)
-                {
-                    if (scale == 1)
-                    {
-                        out_alpha_tile_gpu = in_alpha_tile_gpu;
-                    }
-                    if (scale == 2)
-                    {
-                        bicubic_2x->forward(in_alpha_tile_gpu, out_alpha_tile_gpu, cmd, opt);
-                    }
-                    if (scale == 3)
-                    {
-                        bicubic_3x->forward(in_alpha_tile_gpu, out_alpha_tile_gpu, cmd, opt);
-                    }
-                    if (scale == 4)
-                    {
-                        bicubic_4x->forward(in_alpha_tile_gpu, out_alpha_tile_gpu, cmd, opt);
-                    }
-                }
+                 ncnn::VkMat out_alpha_tile_gpu;
 
                 // postproc
                 {
@@ -531,14 +469,14 @@ int RealESRGAN::process(const ncnn::Mat& inimage, ncnn::Mat& outimage) const
                     constants[7].i = std::min(TILE_SIZE_X * scale, out_gpu.w - xi * TILE_SIZE_X * scale);
                     constants[8].i = prepadding * scale;
                     constants[9].i = prepadding * scale;
-                    constants[10].i = channels;
-                    constants[11].i = out_alpha_tile_gpu.w;
-                    constants[12].i = out_alpha_tile_gpu.h;
+                    constants[10].i = CHANNELS;
+                    constants[11].i = in_alpha_tile_gpu.w;
+                    constants[12].i = in_alpha_tile_gpu.h;
 
                     ncnn::VkMat dispatcher;
                     dispatcher.w = std::min(TILE_SIZE_X * scale, out_gpu.w - xi * TILE_SIZE_X * scale);
                     dispatcher.h = out_gpu.h;
-                    dispatcher.c = channels;
+                    dispatcher.c = CHANNELS;
 
                     cmd.record_pipeline(realesrgan_postproc, bindings, constants, dispatcher);
                 }
@@ -549,18 +487,11 @@ int RealESRGAN::process(const ncnn::Mat& inimage, ncnn::Mat& outimage) const
                 cmd.submit_and_wait();
                 cmd.reset();
             }
-
-            fprintf(stderr, "%.2f%%\n", (float)(yi * xtiles + xi) / (ytiles * xtiles) * 100);
         }
 
         // download
         {
             ncnn::Mat out;
-
-            if (opt.use_fp16_storage && opt.use_int8_storage)
-            {
-                out = ncnn::Mat(out_gpu.w, out_gpu.h, (unsigned char*)outimage.data + yi * scale * TILE_SIZE_Y * w * scale * channels, (size_t)channels, 1);
-            }
 
             cmd.record_clone(out_gpu, out, opt);
 
@@ -568,21 +499,22 @@ int RealESRGAN::process(const ncnn::Mat& inimage, ncnn::Mat& outimage) const
 
             if (!(opt.use_fp16_storage && opt.use_int8_storage))
             {
-                if (channels == 3)
+                const float* out_tile_r = out.channel(0);
+                const float* out_tile_g = out.channel(1);
+                const float* out_tile_b = out.channel(2);
+
+                float* dr = dstpR + yi * TILE_SIZE_Y * scale * dst_stride;
+                float* dg = dstpG + yi * TILE_SIZE_Y * scale * dst_stride;
+                float* db = dstpB + yi * TILE_SIZE_Y * scale * dst_stride;
+
+                for (int y = 0; y < out.h; y++)
                 {
-#if _WIN32
-                    out.to_pixels((unsigned char*)outimage.data + yi * scale * TILE_SIZE_Y * w * scale * channels, ncnn::Mat::PIXEL_RGB2BGR);
-#else
-                    out.to_pixels((unsigned char*)outimage.data + yi * scale * TILE_SIZE_Y * w * scale * channels, ncnn::Mat::PIXEL_RGB);
-#endif
-                }
-                if (channels == 4)
-                {
-#if _WIN32
-                    out.to_pixels((unsigned char*)outimage.data + yi * scale * TILE_SIZE_Y * w * scale * channels, ncnn::Mat::PIXEL_RGBA2BGRA);
-#else
-                    out.to_pixels((unsigned char*)outimage.data + yi * scale * TILE_SIZE_Y * w * scale * channels, ncnn::Mat::PIXEL_RGBA);
-#endif
+                    for (int x = 0; x < out.w; x++)
+                    {
+                        dr[dst_stride * y + x] = std::min(1.f, std::max(0.f, out_tile_r[out.w * y + x] / 255.f));
+                        dg[dst_stride * y + x] = std::min(1.f, std::max(0.f, out_tile_g[out.w * y + x] / 255.f));
+                        db[dst_stride * y + x] = std::min(1.f, std::max(0.f, out_tile_b[out.w * y + x] / 255.f));
+                    }
                 }
             }
         }

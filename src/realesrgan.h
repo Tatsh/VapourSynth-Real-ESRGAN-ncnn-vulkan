@@ -13,31 +13,31 @@
 class RealESRGAN
 {
 public:
-    RealESRGAN(int gpuid, bool tta_mode = false);
-    ~RealESRGAN();
+  RealESRGAN(int gpuid, bool tta_mode = false);
+  ~RealESRGAN();
 
 #if _WIN32
-    int load(const std::wstring& parampath, const std::wstring& modelpath);
+  int load(const std::wstring &parampath, const std::wstring &modelpath);
 #else
-    int load(const std::string& parampath, const std::string& modelpath);
+  int load(const std::string &parampath, const std::string &modelpath);
 #endif
 
-    int process(const ncnn::Mat& inimage, ncnn::Mat& outimage) const;
+  int process(const float *srcpR, const float *srcpG, const float *srcpB, float *dstpR, float *dstpG, float *dstpB, int width, int height, int src_stride, int dst_stride) const;
 
 public:
-    // realesrgan parameters
-    int scale;
-    int tilesize;
-    int prepadding;
+  // realesrgan parameters
+  int scale;
+  int tilesize;
+  int prepadding;
 
 private:
-    ncnn::Net net;
-    ncnn::Pipeline* realesrgan_preproc;
-    ncnn::Pipeline* realesrgan_postproc;
-    ncnn::Layer* bicubic_2x;
-    ncnn::Layer* bicubic_3x;
-    ncnn::Layer* bicubic_4x;
-    bool tta_mode;
+  ncnn::Net net;
+  ncnn::Pipeline *realesrgan_preproc;
+  ncnn::Pipeline *realesrgan_postproc;
+  ncnn::Layer *bicubic_2x;
+  ncnn::Layer *bicubic_3x;
+  ncnn::Layer *bicubic_4x;
+  bool tta_mode;
 };
 
 #endif // REALESRGAN_H
