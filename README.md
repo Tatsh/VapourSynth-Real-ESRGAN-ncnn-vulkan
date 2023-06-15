@@ -2,6 +2,23 @@
 
 Based on [VapourSynth-SRMD-ncnn-Vulkan](https://github.com/Kiyamou/VapourSynth-SRMD-ncnn-Vulkan)
 
+Example use:
+
+```python
+from vapoursynth import core
+import mvsfunc as mvf
+import vapoursynth as vs
+c = core.ffms2.Source('somefile.mp4')
+c = mvf.ToRGB(c, depth=32)
+c = core.esrgan.RealESRGAN(c, model=2, scale=4)
+c = mvf.ToYUV(c, depth=8)
+c.set_output()
+```
+
+```shell
+vspipe -c y4m the-script.vpy - | ffmpeg -f yuv4mpegpipe -i - ...
+```
+
 Original readme below:
 
 ![CI](https://github.com/Tatsh/VapourSynht-Real-ESRGAN-ncnn-vulkan/workflows/CI/badge.svg)
