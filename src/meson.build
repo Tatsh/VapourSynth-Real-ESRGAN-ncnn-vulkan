@@ -13,6 +13,9 @@ endif
 # system glslang explicitly. It must be the same one ncnn itself was built
 # against (NCNN_SYSTEM_GLSLANG=ON in CI) to avoid ABI mismatches.
 glslang_dep = dependency('glslang', required: true)
+py_mod = import('python')
+py = py_mod.find_installation(required: false)
+
 # glslang's optimizer and disassembler live in SPIRV-Tools, which Ubuntu does
 # not package as a library, so CI builds it from source (macOS uses Homebrew,
 # Windows uses the SDK).
@@ -20,12 +23,30 @@ spirv_tools_dep = dependency('SPIRV-Tools', method: 'pkg-config', required: fals
 if not spirv_tools_dep.found()
   spirv_tools_dep = dependency('SPIRV-Tools', method: 'cmake', required: false)
 endif
+if not spirv_tools_dep.found() and host_machine.system() == 'windows'
+  # Meson cannot guess an imported target from SPIRV-Tools' CMake config (it
+  # only defines SPIRV-Tools-static/shared, with no plain target), and
+  # pkg-config is unusable on Windows runners, so locate the static library
+  # in the install prefixes directly.
+  spirv_lib_dirs = []
+  if py.found()
+    prefixes = run_command(
+      py,
+      '-c',
+      'import os; print(os.environ.get("CMAKE_PREFIX_PATH", ""))',
+      check: false,
+    ).stdout().strip().split(';')
+    foreach p : prefixes
+      if p != ''
+        spirv_lib_dirs += p / 'lib'
+      endif
+    endforeach
+  endif
+  spirv_tools_dep = cpp.find_library('SPIRV-Tools', dirs: spirv_lib_dirs, required: false)
+endif
 if not spirv_tools_dep.found()
   error('SPIRV-Tools library not found. Install it (Ubuntu: build from source, macOS: brew install spirv-tools) or point PKG_CONFIG_PATH/CMAKE_PREFIX_PATH at it.')
 endif
-
-py_mod = import('python')
-py = py_mod.find_installation(required: false)
 
 # glslangValidator ships with the Vulkan SDK as well as system packages, so
 # look next to a Vulkan SDK pointed at by VULKAN_SDK before giving up. This
