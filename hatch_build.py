@@ -42,12 +42,24 @@ class CustomHook(BuildHookInterface):  # type: ignore[type-arg]
         ``<site-packages>/vapoursynth/plugins``, so installing the wheel is all
         that is needed to make ``esrgan`` available.
 
+        When the native toolchain (Vulkan, ncnn, glslangValidator) is absent,
+        as on QA runners, the Meson setup fails and a plugin-less wheel is
+        built instead of failing the install. Release builds set
+        ``REALESRGAN_REQUIRE_NATIVE=1`` so a missing toolchain fails loudly
+        rather than shipping a plugin-less wheel.
+
         Parameters
         ----------
         version : str
             Build target version. Unused.
         build_data : dict[str, Any]
             Build metadata consumed by the wheel builder.
+
+        Raises
+        ------
+        subprocess.CalledProcessError
+            If Meson setup fails and ``REALESRGAN_REQUIRE_NATIVE`` is set, or
+            the failure is not a missing native dependency.
         """
         build_data['pure_python'] = False
         # The plugin is loaded by VapourSynth itself rather than by CPython, so
@@ -70,7 +82,23 @@ class CustomHook(BuildHookInterface):  # type: ignore[type-arg]
             # Activate the Visual Studio environment on Windows, where MSVC is
             # required. Ignored elsewhere.
             setup.append('--vsenv')
-        sp.run(setup, check=True)
+        try:
+            proc = sp.run(setup, check=True, capture_output=True, text=True)
+        except sp.CalledProcessError as e:
+            output = (e.stdout or '') + '\n' + (e.stderr or '')
+            if os.environ.get('REALESRGAN_REQUIRE_NATIVE') or 'not found' not in output.lower():
+                raise
+            print(  # ruff: ignore[print]
+                'WARNING: Meson setup failed, skipping the native plugin build. Install '
+                'Vulkan, ncnn and glslangValidator for the real plugin, or set '
+                'REALESRGAN_REQUIRE_NATIVE=1 to fail instead.'
+            )
+            build_data['pure_python'] = True
+            build_data['tag'] = 'py3-none-any'
+            return
+        print(proc.stdout, end='')  # ruff: ignore[print]
+        if proc.stderr:
+            print(proc.stderr, end='', file=sys.stderr)  # ruff: ignore[print]
         sp.run([*meson, 'compile', '-C', str(self.source_dir)], check=True)
         self.target_dir.mkdir(parents=True, exist_ok=True)
         for path in (self.source_dir / 'src').glob('*'):

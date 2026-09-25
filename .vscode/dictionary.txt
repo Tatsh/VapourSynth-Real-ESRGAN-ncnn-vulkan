@@ -10,6 +10,7 @@ bsky
 buildtype
 cdrommsf
 charliermarsh
+cibuildwheel
 commitizen
 conftest
 coveragerc
@@ -58,6 +59,7 @@ libstdc
 libvulkan
 linted
 linters
+mapfile
 mesonbuild
 mesonmain
 mktemp
@@ -76,7 +78,6 @@ ncpu
 nihui
 noone
 noqa
-nullglob
 numpy
 numpydoc
 oneline
@@ -89,6 +90,7 @@ popen
 postproc
 preapproved
 preproc
+proc
 projectinfo
 pycache
 pydantic
@@ -117,7 +119,6 @@ sdist
 setattr
 shellcheck
 shellformat
-shopt
 snapcraft
 soupsieve
 sphinxcontrib

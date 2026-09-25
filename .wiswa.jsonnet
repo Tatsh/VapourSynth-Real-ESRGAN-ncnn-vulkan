@@ -42,6 +42,11 @@ local utils = import 'utils.libsonnet';
     // succeed before publishing, mirroring scenechange. Note publish.yml is
     // likewise hand-maintained (per-OS wheels); a regen overwrites it.
     workflows+: {
+      qa+: {
+        // System packages for QA's uv sync. ncnn is not apt-installable;
+        // hatch_build.py skips the native build without it.
+        apt_packages: ['cmake', 'glslang-tools', 'libvulkan-dev', 'ninja-build'],
+      },
       release_gate_workflows: ['Meson'],
     },
   },

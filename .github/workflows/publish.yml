@@ -112,7 +112,7 @@ jobs:
           persist-credentials: false
       # Shallow submodule checkout: full ncnn history is over 1 GB.
       - name: 'Checkout submodules'
-        run: 'git submodule update --init --depth 1 src/ncnn'
+        run: 'git submodule update --init --depth 1 --recursive src/ncnn'
       - uses: 'actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97'
         with:
           python-version: '3.13'
@@ -135,6 +135,7 @@ jobs:
       - env:
           CMAKE_PREFIX_PATH: '${{ github.workspace }}/ncnn-install'
           REALESRGAN_MESON_SETUP_ARGS: '--buildtype release'
+          REALESRGAN_REQUIRE_NATIVE: '1'
         name: 'Build wheel'
         run: 'uv build --wheel'
       - uses: 'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a'
@@ -161,7 +162,7 @@ jobs:
           persist-credentials: false
       # Shallow submodule checkout: full ncnn history is over 1 GB.
       - name: 'Checkout submodules'
-        run: 'git submodule update --init --depth 1 src/ncnn'
+        run: 'git submodule update --init --depth 1 --recursive src/ncnn'
       - uses: 'actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97'
         with:
           python-version: '3.13'
@@ -184,6 +185,7 @@ jobs:
           CMAKE_PREFIX_PATH: '${{ github.workspace }}/ncnn-install'
           MACOSX_DEPLOYMENT_TARGET: '11.0'
           REALESRGAN_MESON_SETUP_ARGS: '--buildtype release'
+          REALESRGAN_REQUIRE_NATIVE: '1'
         name: 'Build wheel'
         run: 'uv build --wheel'
       - uses: 'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a'
@@ -210,7 +212,7 @@ jobs:
           persist-credentials: false
       # Shallow submodule checkout: full ncnn history is over 1 GB.
       - name: 'Checkout submodules'
-        run: 'git submodule update --init --depth 1 src/ncnn'
+        run: 'git submodule update --init --depth 1 --recursive src/ncnn'
       - uses: 'actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97'
         with:
           python-version: '3.13'
@@ -237,6 +239,7 @@ jobs:
       - env:
           CMAKE_PREFIX_PATH: '${{ github.workspace }}/ncnn-install'
           REALESRGAN_MESON_SETUP_ARGS: '--buildtype release -Db_vscrt=mt'
+          REALESRGAN_REQUIRE_NATIVE: '1'
           VULKAN_SDK: '${{ github.workspace }}/VulkanSDK'
         name: 'Build wheel'
         run: 'uv build --wheel'
