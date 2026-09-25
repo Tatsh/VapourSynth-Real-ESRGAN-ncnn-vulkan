@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, override
 import os
+import shlex
 import shutil
 import subprocess as sp
 import sys
@@ -56,7 +57,11 @@ class CustomHook(BuildHookInterface):  # type: ignore[type-arg]
         platform_tag = os.environ.get('REALESRGAN_WHEEL_PLATFORM_TAG') or self._platform_tag()
         build_data['tag'] = f'py3-none-{platform_tag}'
         meson = (sys.executable, '-m', 'mesonbuild.mesonmain')
-        setup = [*meson, 'setup', str(self.source_dir)]
+        # Extra arguments for ``meson setup``, taken from REALESRGAN_MESON_SETUP_ARGS
+        # split like a shell (e.g. '--buildtype release -Db_vscrt=mt'). Used by CI
+        # to build optimised wheels; local builds keep Meson's defaults.
+        setup_args = shlex.split(os.environ.get('REALESRGAN_MESON_SETUP_ARGS', ''))
+        setup = [*meson, 'setup', str(self.source_dir), *setup_args]
         if (self.source_dir / 'meson-info').is_dir():
             # ``--vsenv`` is read-only after the first configure, so it may only
             # be passed when the build directory is created.

@@ -6,45 +6,44 @@
 #include <vector>
 
 static const uint32_t realesrgan_preproc_spv_data[] = {
-    #include "realesrgan_preproc.spv.hex.h"
+#include "realesrgan_preproc.spv.hex.h"
 };
 static const uint32_t realesrgan_preproc_fp16s_spv_data[] = {
-    #include "realesrgan_preproc_fp16s.spv.hex.h"
+#include "realesrgan_preproc_fp16s.spv.hex.h"
 };
 static const uint32_t realesrgan_preproc_int8s_spv_data[] = {
-    #include "realesrgan_preproc_int8s.spv.hex.h"
+#include "realesrgan_preproc_int8s.spv.hex.h"
 };
 static const uint32_t realesrgan_postproc_spv_data[] = {
-    #include "realesrgan_postproc.spv.hex.h"
+#include "realesrgan_postproc.spv.hex.h"
 };
 static const uint32_t realesrgan_postproc_fp16s_spv_data[] = {
-    #include "realesrgan_postproc_fp16s.spv.hex.h"
+#include "realesrgan_postproc_fp16s.spv.hex.h"
 };
 static const uint32_t realesrgan_postproc_int8s_spv_data[] = {
-    #include "realesrgan_postproc_int8s.spv.hex.h"
+#include "realesrgan_postproc_int8s.spv.hex.h"
 };
 
 static const uint32_t realesrgan_preproc_tta_spv_data[] = {
-    #include "realesrgan_preproc_tta.spv.hex.h"
+#include "realesrgan_preproc_tta.spv.hex.h"
 };
 static const uint32_t realesrgan_preproc_tta_fp16s_spv_data[] = {
-    #include "realesrgan_preproc_tta_fp16s.spv.hex.h"
+#include "realesrgan_preproc_tta_fp16s.spv.hex.h"
 };
 static const uint32_t realesrgan_preproc_tta_int8s_spv_data[] = {
-    #include "realesrgan_preproc_tta_int8s.spv.hex.h"
+#include "realesrgan_preproc_tta_int8s.spv.hex.h"
 };
 static const uint32_t realesrgan_postproc_tta_spv_data[] = {
-    #include "realesrgan_postproc_tta.spv.hex.h"
+#include "realesrgan_postproc_tta.spv.hex.h"
 };
 static const uint32_t realesrgan_postproc_tta_fp16s_spv_data[] = {
-    #include "realesrgan_postproc_tta_fp16s.spv.hex.h"
+#include "realesrgan_postproc_tta_fp16s.spv.hex.h"
 };
 static const uint32_t realesrgan_postproc_tta_int8s_spv_data[] = {
-    #include "realesrgan_postproc_tta_int8s.spv.hex.h"
+#include "realesrgan_postproc_tta_int8s.spv.hex.h"
 };
 
-RealESRGAN::RealESRGAN(int gpuid, bool _tta_mode)
-{
+RealESRGAN::RealESRGAN(int gpuid, bool _tta_mode) {
     net.opt.use_vulkan_compute = true;
     net.opt.use_fp16_packed = true;
     net.opt.use_fp16_storage = true;
@@ -62,8 +61,7 @@ RealESRGAN::RealESRGAN(int gpuid, bool _tta_mode)
     tta_mode = _tta_mode;
 }
 
-RealESRGAN::~RealESRGAN()
-{
+RealESRGAN::~RealESRGAN() {
     // cleanup preprocess and postprocess pipeline
     {
         delete realesrgan_preproc;
@@ -81,16 +79,15 @@ RealESRGAN::~RealESRGAN()
 }
 
 #if _WIN32
-int RealESRGAN::load(const std::wstring& parampath, const std::wstring& modelpath)
+int RealESRGAN::load(const std::wstring &parampath, const std::wstring &modelpath)
 #else
-int RealESRGAN::load(const std::string& parampath, const std::string& modelpath)
+int RealESRGAN::load(const std::string &parampath, const std::string &modelpath)
 #endif
 {
 #if _WIN32
     {
-        FILE* fp = _wfopen(parampath.c_str(), L"rb");
-        if (!fp)
-        {
+        FILE *fp = _wfopen(parampath.c_str(), L"rb");
+        if (!fp) {
             fwprintf(stderr, L"_wfopen %ls failed\n", parampath.c_str());
         }
 
@@ -99,9 +96,8 @@ int RealESRGAN::load(const std::string& parampath, const std::string& modelpath)
         fclose(fp);
     }
     {
-        FILE* fp = _wfopen(modelpath.c_str(), L"rb");
-        if (!fp)
-        {
+        FILE *fp = _wfopen(modelpath.c_str(), L"rb");
+        if (!fp) {
             fwprintf(stderr, L"_wfopen %ls failed\n", modelpath.c_str());
         }
 
@@ -129,37 +125,58 @@ int RealESRGAN::load(const std::string& parampath, const std::string& modelpath)
         realesrgan_postproc = new ncnn::Pipeline(net.vulkan_device());
         realesrgan_postproc->set_optimal_local_size_xyz(32, 32, 3);
 
-        if (tta_mode)
-        {
+        if (tta_mode) {
             if (net.opt.use_fp16_storage && net.opt.use_int8_storage)
-                realesrgan_preproc->create(realesrgan_preproc_tta_int8s_spv_data, sizeof(realesrgan_preproc_tta_int8s_spv_data), specializations);
+                realesrgan_preproc->create(realesrgan_preproc_tta_int8s_spv_data,
+                                           sizeof(realesrgan_preproc_tta_int8s_spv_data),
+                                           specializations);
             else if (net.opt.use_fp16_storage)
-                realesrgan_preproc->create(realesrgan_preproc_tta_fp16s_spv_data, sizeof(realesrgan_preproc_tta_fp16s_spv_data), specializations);
+                realesrgan_preproc->create(realesrgan_preproc_tta_fp16s_spv_data,
+                                           sizeof(realesrgan_preproc_tta_fp16s_spv_data),
+                                           specializations);
             else
-                realesrgan_preproc->create(realesrgan_preproc_tta_spv_data, sizeof(realesrgan_preproc_tta_spv_data), specializations);
+                realesrgan_preproc->create(realesrgan_preproc_tta_spv_data,
+                                           sizeof(realesrgan_preproc_tta_spv_data),
+                                           specializations);
 
             if (net.opt.use_fp16_storage && net.opt.use_int8_storage)
-                realesrgan_postproc->create(realesrgan_postproc_tta_int8s_spv_data, sizeof(realesrgan_postproc_tta_int8s_spv_data), specializations);
+                realesrgan_postproc->create(realesrgan_postproc_tta_int8s_spv_data,
+                                            sizeof(realesrgan_postproc_tta_int8s_spv_data),
+                                            specializations);
             else if (net.opt.use_fp16_storage)
-                realesrgan_postproc->create(realesrgan_postproc_tta_fp16s_spv_data, sizeof(realesrgan_postproc_tta_fp16s_spv_data), specializations);
+                realesrgan_postproc->create(realesrgan_postproc_tta_fp16s_spv_data,
+                                            sizeof(realesrgan_postproc_tta_fp16s_spv_data),
+                                            specializations);
             else
-                realesrgan_postproc->create(realesrgan_postproc_tta_spv_data, sizeof(realesrgan_postproc_tta_spv_data), specializations);
-        }
-        else
-        {
+                realesrgan_postproc->create(realesrgan_postproc_tta_spv_data,
+                                            sizeof(realesrgan_postproc_tta_spv_data),
+                                            specializations);
+        } else {
             if (net.opt.use_fp16_storage && net.opt.use_int8_storage)
-                realesrgan_preproc->create(realesrgan_preproc_int8s_spv_data, sizeof(realesrgan_preproc_int8s_spv_data), specializations);
+                realesrgan_preproc->create(realesrgan_preproc_int8s_spv_data,
+                                           sizeof(realesrgan_preproc_int8s_spv_data),
+                                           specializations);
             else if (net.opt.use_fp16_storage)
-                realesrgan_preproc->create(realesrgan_preproc_fp16s_spv_data, sizeof(realesrgan_preproc_fp16s_spv_data), specializations);
+                realesrgan_preproc->create(realesrgan_preproc_fp16s_spv_data,
+                                           sizeof(realesrgan_preproc_fp16s_spv_data),
+                                           specializations);
             else
-                realesrgan_preproc->create(realesrgan_preproc_spv_data, sizeof(realesrgan_preproc_spv_data), specializations);
+                realesrgan_preproc->create(realesrgan_preproc_spv_data,
+                                           sizeof(realesrgan_preproc_spv_data),
+                                           specializations);
 
             if (net.opt.use_fp16_storage && net.opt.use_int8_storage)
-                realesrgan_postproc->create(realesrgan_postproc_int8s_spv_data, sizeof(realesrgan_postproc_int8s_spv_data), specializations);
+                realesrgan_postproc->create(realesrgan_postproc_int8s_spv_data,
+                                            sizeof(realesrgan_postproc_int8s_spv_data),
+                                            specializations);
             else if (net.opt.use_fp16_storage)
-                realesrgan_postproc->create(realesrgan_postproc_fp16s_spv_data, sizeof(realesrgan_postproc_fp16s_spv_data), specializations);
+                realesrgan_postproc->create(realesrgan_postproc_fp16s_spv_data,
+                                            sizeof(realesrgan_postproc_fp16s_spv_data),
+                                            specializations);
             else
-                realesrgan_postproc->create(realesrgan_postproc_spv_data, sizeof(realesrgan_postproc_spv_data), specializations);
+                realesrgan_postproc->create(realesrgan_postproc_spv_data,
+                                            sizeof(realesrgan_postproc_spv_data),
+                                            specializations);
         }
     }
 
@@ -169,7 +186,7 @@ int RealESRGAN::load(const std::string& parampath, const std::string& modelpath)
         bicubic_2x->vkdev = net.vulkan_device();
 
         ncnn::ParamDict pd;
-        pd.set(0, 3);// bicubic
+        pd.set(0, 3); // bicubic
         pd.set(1, 2.f);
         pd.set(2, 2.f);
         bicubic_2x->load_param(pd);
@@ -181,7 +198,7 @@ int RealESRGAN::load(const std::string& parampath, const std::string& modelpath)
         bicubic_3x->vkdev = net.vulkan_device();
 
         ncnn::ParamDict pd;
-        pd.set(0, 3);// bicubic
+        pd.set(0, 3); // bicubic
         pd.set(1, 3.f);
         pd.set(2, 3.f);
         bicubic_3x->load_param(pd);
@@ -193,7 +210,7 @@ int RealESRGAN::load(const std::string& parampath, const std::string& modelpath)
         bicubic_4x->vkdev = net.vulkan_device();
 
         ncnn::ParamDict pd;
-        pd.set(0, 3);// bicubic
+        pd.set(0, 3); // bicubic
         pd.set(1, 4.f);
         pd.set(2, 4.f);
         bicubic_4x->load_param(pd);
@@ -206,13 +223,21 @@ int RealESRGAN::load(const std::string& parampath, const std::string& modelpath)
 
 constexpr int CHANNELS = 3;
 
-int RealESRGAN::process(const float* srcpR, const float* srcpG, const float* srcpB, float* dstpR, float* dstpG, float* dstpB, int width, int height, int src_stride, int dst_stride) const
-{
+int RealESRGAN::process(const float *srcpR,
+                        const float *srcpG,
+                        const float *srcpB,
+                        float *dstpR,
+                        float *dstpG,
+                        float *dstpB,
+                        int width,
+                        int height,
+                        int src_stride,
+                        int dst_stride) const {
     const int TILE_SIZE_X = tilesize;
     const int TILE_SIZE_Y = tilesize;
 
-    ncnn::VkAllocator* blob_vkallocator = net.vulkan_device()->acquire_blob_allocator();
-    ncnn::VkAllocator* staging_vkallocator = net.vulkan_device()->acquire_staging_allocator();
+    ncnn::VkAllocator *blob_vkallocator = net.vulkan_device()->acquire_blob_allocator();
+    ncnn::VkAllocator *staging_vkallocator = net.vulkan_device()->acquire_staging_allocator();
 
     ncnn::Option opt = net.opt;
     opt.blob_vkallocator = blob_vkallocator;
@@ -226,8 +251,7 @@ int RealESRGAN::process(const float* srcpR, const float* srcpG, const float* src
     const size_t in_out_tile_elemsize = opt.use_fp16_storage ? 2u : 4u;
 
     //#pragma omp parallel for num_threads(2)
-    for (int yi = 0; yi < ytiles; yi++)
-    {
+    for (int yi = 0; yi < ytiles; yi++) {
         const int tile_h_nopad = std::min((yi + 1) * TILE_SIZE_Y, height) - yi * TILE_SIZE_Y;
 
         int in_tile_y0 = std::max(yi * TILE_SIZE_Y - prepadding, 0);
@@ -238,16 +262,14 @@ int RealESRGAN::process(const float* srcpR, const float* srcpG, const float* src
         ncnn::Mat in;
         in.create(in_tile_w, in_tile_h, CHANNELS, sizeof(float));
 
-        float* in_tile_r = in.channel(0);
-        float* in_tile_g = in.channel(1);
-        float* in_tile_b = in.channel(2);
-        const float* sr = srcpR + in_tile_y0 * src_stride;
-        const float* sg = srcpG + in_tile_y0 * src_stride;
-        const float* sb = srcpB + in_tile_y0 * src_stride;
-        for (int y = 0; y < in_tile_h; y++)
-        {
-            for (int x = 0; x < in_tile_w; x++)
-            {
+        float *in_tile_r = in.channel(0);
+        float *in_tile_g = in.channel(1);
+        float *in_tile_b = in.channel(2);
+        const float *sr = srcpR + in_tile_y0 * src_stride;
+        const float *sg = srcpG + in_tile_y0 * src_stride;
+        const float *sb = srcpB + in_tile_y0 * src_stride;
+        for (int y = 0; y < in_tile_h; y++) {
+            for (int x = 0; x < in_tile_w; x++) {
                 in_tile_r[in_tile_w * y + x] = sr[src_stride * y + x] * 255.f;
                 in_tile_g[in_tile_w * y + x] = sg[src_stride * y + x] * 255.f;
                 in_tile_b[in_tile_w * y + x] = sb[src_stride * y + x] * 255.f;
@@ -261,8 +283,7 @@ int RealESRGAN::process(const float* srcpR, const float* srcpG, const float* src
         {
             cmd.record_clone(in, in_gpu, opt);
 
-            if (xtiles > 1)
-            {
+            if (xtiles > 1) {
                 cmd.submit_and_wait();
                 cmd.reset();
             }
@@ -272,14 +293,16 @@ int RealESRGAN::process(const float* srcpR, const float* srcpG, const float* src
         int out_tile_y1 = std::min((yi + 1) * TILE_SIZE_Y, height);
 
         ncnn::VkMat out_gpu;
-        out_gpu.create(width * scale, (out_tile_y1 - out_tile_y0) * scale, CHANNELS, sizeof(float), blob_vkallocator);
+        out_gpu.create(width * scale,
+                       (out_tile_y1 - out_tile_y0) * scale,
+                       CHANNELS,
+                       sizeof(float),
+                       blob_vkallocator);
 
-        for (int xi = 0; xi < xtiles; xi++)
-        {
+        for (int xi = 0; xi < xtiles; xi++) {
             const int tile_w_nopad = std::min((xi + 1) * TILE_SIZE_X, width) - xi * TILE_SIZE_X;
 
-            if (tta_mode)
-            {
+            if (tta_mode) {
                 // preproc
                 ncnn::VkMat in_tile_gpu[8];
                 ncnn::VkMat in_alpha_tile_gpu;
@@ -290,14 +313,54 @@ int RealESRGAN::process(const float* srcpR, const float* srcpG, const float* src
                     int tile_y0 = yi * TILE_SIZE_Y - prepadding;
                     int tile_y1 = std::min((yi + 1) * TILE_SIZE_Y, height) + prepadding;
 
-                    in_tile_gpu[0].create(tile_x1 - tile_x0, tile_y1 - tile_y0, CHANNELS, in_out_tile_elemsize, 1, blob_vkallocator);
-                    in_tile_gpu[1].create(tile_x1 - tile_x0, tile_y1 - tile_y0, CHANNELS, in_out_tile_elemsize, 1, blob_vkallocator);
-                    in_tile_gpu[2].create(tile_x1 - tile_x0, tile_y1 - tile_y0, CHANNELS, in_out_tile_elemsize, 1, blob_vkallocator);
-                    in_tile_gpu[3].create(tile_x1 - tile_x0, tile_y1 - tile_y0, CHANNELS, in_out_tile_elemsize, 1, blob_vkallocator);
-                    in_tile_gpu[4].create(tile_y1 - tile_y0, tile_x1 - tile_x0, CHANNELS, in_out_tile_elemsize, 1, blob_vkallocator);
-                    in_tile_gpu[5].create(tile_y1 - tile_y0, tile_x1 - tile_x0, CHANNELS, in_out_tile_elemsize, 1, blob_vkallocator);
-                    in_tile_gpu[6].create(tile_y1 - tile_y0, tile_x1 - tile_x0, CHANNELS, in_out_tile_elemsize, 1, blob_vkallocator);
-                    in_tile_gpu[7].create(tile_y1 - tile_y0, tile_x1 - tile_x0, CHANNELS, in_out_tile_elemsize, 1, blob_vkallocator);
+                    in_tile_gpu[0].create(tile_x1 - tile_x0,
+                                          tile_y1 - tile_y0,
+                                          CHANNELS,
+                                          in_out_tile_elemsize,
+                                          1,
+                                          blob_vkallocator);
+                    in_tile_gpu[1].create(tile_x1 - tile_x0,
+                                          tile_y1 - tile_y0,
+                                          CHANNELS,
+                                          in_out_tile_elemsize,
+                                          1,
+                                          blob_vkallocator);
+                    in_tile_gpu[2].create(tile_x1 - tile_x0,
+                                          tile_y1 - tile_y0,
+                                          CHANNELS,
+                                          in_out_tile_elemsize,
+                                          1,
+                                          blob_vkallocator);
+                    in_tile_gpu[3].create(tile_x1 - tile_x0,
+                                          tile_y1 - tile_y0,
+                                          CHANNELS,
+                                          in_out_tile_elemsize,
+                                          1,
+                                          blob_vkallocator);
+                    in_tile_gpu[4].create(tile_y1 - tile_y0,
+                                          tile_x1 - tile_x0,
+                                          CHANNELS,
+                                          in_out_tile_elemsize,
+                                          1,
+                                          blob_vkallocator);
+                    in_tile_gpu[5].create(tile_y1 - tile_y0,
+                                          tile_x1 - tile_x0,
+                                          CHANNELS,
+                                          in_out_tile_elemsize,
+                                          1,
+                                          blob_vkallocator);
+                    in_tile_gpu[6].create(tile_y1 - tile_y0,
+                                          tile_x1 - tile_x0,
+                                          CHANNELS,
+                                          in_out_tile_elemsize,
+                                          1,
+                                          blob_vkallocator);
+                    in_tile_gpu[7].create(tile_y1 - tile_y0,
+                                          tile_x1 - tile_x0,
+                                          CHANNELS,
+                                          in_out_tile_elemsize,
+                                          1,
+                                          blob_vkallocator);
 
                     std::vector<ncnn::VkMat> bindings(10);
                     bindings[0] = in_gpu;
@@ -336,8 +399,7 @@ int RealESRGAN::process(const float* srcpR, const float* srcpG, const float* src
 
                 // realesrgan
                 ncnn::VkMat out_tile_gpu[8];
-                for (int ti = 0; ti < 8; ti++)
-                {
+                for (int ti = 0; ti < 8; ti++) {
                     ncnn::Extractor ex = net.create_extractor();
 
                     ex.set_blob_vkallocator(blob_vkallocator);
@@ -378,7 +440,8 @@ int RealESRGAN::process(const float* srcpR, const float* srcpG, const float* src
                     constants[4].i = out_gpu.h;
                     constants[5].i = out_gpu.cstep;
                     constants[6].i = xi * TILE_SIZE_X * scale;
-                    constants[7].i = std::min(TILE_SIZE_X * scale, out_gpu.w - xi * TILE_SIZE_X * scale);
+                    constants[7].i =
+                        std::min(TILE_SIZE_X * scale, out_gpu.w - xi * TILE_SIZE_X * scale);
                     constants[8].i = prepadding * scale;
                     constants[9].i = prepadding * scale;
                     constants[10].i = CHANNELS;
@@ -386,15 +449,14 @@ int RealESRGAN::process(const float* srcpR, const float* srcpG, const float* src
                     constants[12].i = out_alpha_tile_gpu.h;
 
                     ncnn::VkMat dispatcher;
-                    dispatcher.w = std::min(TILE_SIZE_X * scale, out_gpu.w - xi * TILE_SIZE_X * scale);
+                    dispatcher.w =
+                        std::min(TILE_SIZE_X * scale, out_gpu.w - xi * TILE_SIZE_X * scale);
                     dispatcher.h = out_gpu.h;
                     dispatcher.c = CHANNELS;
 
                     cmd.record_pipeline(realesrgan_postproc, bindings, constants, dispatcher);
                 }
-            }
-            else
-            {
+            } else {
                 // preproc
                 ncnn::VkMat in_tile_gpu;
                 ncnn::VkMat in_alpha_tile_gpu;
@@ -405,7 +467,12 @@ int RealESRGAN::process(const float* srcpR, const float* srcpG, const float* src
                     int tile_y0 = yi * TILE_SIZE_Y - prepadding;
                     int tile_y1 = std::min((yi + 1) * TILE_SIZE_Y, height) + prepadding;
 
-                    in_tile_gpu.create(tile_x1 - tile_x0, tile_y1 - tile_y0, 3, in_out_tile_elemsize, 1, blob_vkallocator);
+                    in_tile_gpu.create(tile_x1 - tile_x0,
+                                       tile_y1 - tile_y0,
+                                       3,
+                                       in_out_tile_elemsize,
+                                       1,
+                                       blob_vkallocator);
 
                     std::vector<ncnn::VkMat> bindings(3);
                     bindings[0] = in_gpu;
@@ -449,7 +516,7 @@ int RealESRGAN::process(const float* srcpR, const float* srcpG, const float* src
                     ex.extract("output", out_tile_gpu, cmd);
                 }
 
-                 ncnn::VkMat out_alpha_tile_gpu;
+                ncnn::VkMat out_alpha_tile_gpu;
 
                 // postproc
                 {
@@ -466,7 +533,8 @@ int RealESRGAN::process(const float* srcpR, const float* srcpG, const float* src
                     constants[4].i = out_gpu.h;
                     constants[5].i = out_gpu.cstep;
                     constants[6].i = xi * TILE_SIZE_X * scale;
-                    constants[7].i = std::min(TILE_SIZE_X * scale, out_gpu.w - xi * TILE_SIZE_X * scale);
+                    constants[7].i =
+                        std::min(TILE_SIZE_X * scale, out_gpu.w - xi * TILE_SIZE_X * scale);
                     constants[8].i = prepadding * scale;
                     constants[9].i = prepadding * scale;
                     constants[10].i = CHANNELS;
@@ -474,7 +542,8 @@ int RealESRGAN::process(const float* srcpR, const float* srcpG, const float* src
                     constants[12].i = in_alpha_tile_gpu.h;
 
                     ncnn::VkMat dispatcher;
-                    dispatcher.w = std::min(TILE_SIZE_X * scale, out_gpu.w - xi * TILE_SIZE_X * scale);
+                    dispatcher.w =
+                        std::min(TILE_SIZE_X * scale, out_gpu.w - xi * TILE_SIZE_X * scale);
                     dispatcher.h = out_gpu.h;
                     dispatcher.c = CHANNELS;
 
@@ -482,8 +551,7 @@ int RealESRGAN::process(const float* srcpR, const float* srcpG, const float* src
                 }
             }
 
-            if (xtiles > 1)
-            {
+            if (xtiles > 1) {
                 cmd.submit_and_wait();
                 cmd.reset();
             }
@@ -497,23 +565,23 @@ int RealESRGAN::process(const float* srcpR, const float* srcpG, const float* src
 
             cmd.submit_and_wait();
 
-            if (!(opt.use_fp16_storage && opt.use_int8_storage))
-            {
-                const float* out_tile_r = out.channel(0);
-                const float* out_tile_g = out.channel(1);
-                const float* out_tile_b = out.channel(2);
+            if (!(opt.use_fp16_storage && opt.use_int8_storage)) {
+                const float *out_tile_r = out.channel(0);
+                const float *out_tile_g = out.channel(1);
+                const float *out_tile_b = out.channel(2);
 
-                float* dr = dstpR + yi * TILE_SIZE_Y * scale * dst_stride;
-                float* dg = dstpG + yi * TILE_SIZE_Y * scale * dst_stride;
-                float* db = dstpB + yi * TILE_SIZE_Y * scale * dst_stride;
+                float *dr = dstpR + yi * TILE_SIZE_Y * scale * dst_stride;
+                float *dg = dstpG + yi * TILE_SIZE_Y * scale * dst_stride;
+                float *db = dstpB + yi * TILE_SIZE_Y * scale * dst_stride;
 
-                for (int y = 0; y < out.h; y++)
-                {
-                    for (int x = 0; x < out.w; x++)
-                    {
-                        dr[dst_stride * y + x] = std::min(1.f, std::max(0.f, out_tile_r[out.w * y + x] / 255.f));
-                        dg[dst_stride * y + x] = std::min(1.f, std::max(0.f, out_tile_g[out.w * y + x] / 255.f));
-                        db[dst_stride * y + x] = std::min(1.f, std::max(0.f, out_tile_b[out.w * y + x] / 255.f));
+                for (int y = 0; y < out.h; y++) {
+                    for (int x = 0; x < out.w; x++) {
+                        dr[dst_stride * y + x] =
+                            std::min(1.f, std::max(0.f, out_tile_r[out.w * y + x] / 255.f));
+                        dg[dst_stride * y + x] =
+                            std::min(1.f, std::max(0.f, out_tile_g[out.w * y + x] / 255.f));
+                        db[dst_stride * y + x] =
+                            std::min(1.f, std::max(0.f, out_tile_b[out.w * y + x] / 255.f));
                     }
                 }
             }

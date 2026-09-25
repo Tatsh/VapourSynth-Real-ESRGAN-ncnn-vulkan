@@ -15,7 +15,7 @@ jobs:
         name: 'Wait for workflows'
         run: |
           sha="$COMMIT_SHA"
-          required_workflows=()
+          required_workflows=('Meson' 'Wheels')
           optional_workflows=('Prettier' 'QA' 'Spelling' 'markdownlint')
           process_workflow() {
             local workflow="$1" treat_missing="$2"

@@ -1,0 +1,246 @@
+# Linux x86_64 is deliberately absent here: the Publish workflow builds and
+# publishes that wheel together with the sdist, so building it twice would
+# collide on PyPI.
+jobs:
+  build-linux-aarch64:
+    permissions:
+      contents: 'read'
+    runs-on: 'ubuntu-24.04-arm'
+    steps:
+      - uses: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
+        with:
+          persist-credentials: false
+      # Shallow submodule checkout: full ncnn history is over 1 GB.
+      - name: 'Checkout submodules'
+        run: 'git submodule update --init --depth 1 src/ncnn'
+      - uses: 'actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97'
+        with:
+          python-version: '3.13'
+      - name: 'Install dependencies'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build libvulkan-dev glslang-tools
+          python -m pip install --upgrade meson
+      - name: 'Build ncnn'
+        run: |
+          cmake -S src/ncnn -B ncnn-build -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="${GITHUB_WORKSPACE}/ncnn-install" \
+            -DNCNN_VULKAN=ON -DNCNN_BUILD_TESTS=OFF -DNCNN_BUILD_EXAMPLES=OFF \
+            -DNCNN_BUILD_TOOLS=OFF -DNCNN_BUILD_BENCHMARK=OFF
+          cmake --build ncnn-build -j "$(nproc)"
+          cmake --install ncnn-build
+      - uses: 'astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7'
+        with:
+          enable-cache: false
+      - env:
+          CMAKE_PREFIX_PATH: '${{ github.workspace }}/ncnn-install'
+          REALESRGAN_MESON_SETUP_ARGS: '--buildtype release'
+        name: 'Build wheel'
+        run: 'uv build --wheel'
+      - name: 'Upload wheel'
+        uses: 'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a'
+        with:
+          if-no-files-found: 'error'
+          name: 'release-assets-linux-aarch64'
+          path: 'dist/*.whl'
+  build-macos-arm64:
+    permissions:
+      contents: 'read'
+    runs-on: 'macos-latest'
+    steps:
+      - uses: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
+        with:
+          persist-credentials: false
+      # Shallow submodule checkout: full ncnn history is over 1 GB.
+      - name: 'Checkout submodules'
+        run: 'git submodule update --init --depth 1 src/ncnn'
+      - uses: 'actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97'
+        with:
+          python-version: '3.13'
+      - name: 'Install dependencies'
+        run: |
+          brew install cmake ninja molten-vk glslang
+          python -m pip install --upgrade meson
+      - name: 'Build ncnn'
+        run: |
+          cmake -S src/ncnn -B ncnn-build -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="${GITHUB_WORKSPACE}/ncnn-install" \
+            -DNCNN_VULKAN=ON -DNCNN_BUILD_TESTS=OFF -DNCNN_BUILD_EXAMPLES=OFF \
+            -DNCNN_BUILD_TOOLS=OFF -DNCNN_BUILD_BENCHMARK=OFF
+          cmake --build ncnn-build -j "$(sysctl -n hw.ncpu)"
+          cmake --install ncnn-build
+      - uses: 'astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7'
+        with:
+          enable-cache: false
+      - env:
+          CMAKE_PREFIX_PATH: '${{ github.workspace }}/ncnn-install'
+          MACOSX_DEPLOYMENT_TARGET: '11.0'
+          REALESRGAN_MESON_SETUP_ARGS: '--buildtype release'
+        name: 'Build wheel'
+        run: 'uv build --wheel'
+      - name: 'Upload wheel'
+        uses: 'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a'
+        with:
+          if-no-files-found: 'error'
+          name: 'release-assets-macos-arm64'
+          path: 'dist/*.whl'
+  build-macos-x86_64:
+    permissions:
+      contents: 'read'
+    runs-on: 'macos-15-intel'
+    steps:
+      - uses: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
+        with:
+          persist-credentials: false
+      # Shallow submodule checkout: full ncnn history is over 1 GB.
+      - name: 'Checkout submodules'
+        run: 'git submodule update --init --depth 1 src/ncnn'
+      - uses: 'actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97'
+        with:
+          python-version: '3.13'
+      - name: 'Install dependencies'
+        run: |
+          brew install cmake ninja molten-vk glslang
+          python -m pip install --upgrade meson
+      - name: 'Build ncnn'
+        run: |
+          cmake -S src/ncnn -B ncnn-build -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="${GITHUB_WORKSPACE}/ncnn-install" \
+            -DNCNN_VULKAN=ON -DNCNN_BUILD_TESTS=OFF -DNCNN_BUILD_EXAMPLES=OFF \
+            -DNCNN_BUILD_TOOLS=OFF -DNCNN_BUILD_BENCHMARK=OFF
+          cmake --build ncnn-build -j "$(sysctl -n hw.ncpu)"
+          cmake --install ncnn-build
+      - uses: 'astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7'
+        with:
+          enable-cache: false
+      - env:
+          CMAKE_PREFIX_PATH: '${{ github.workspace }}/ncnn-install'
+          MACOSX_DEPLOYMENT_TARGET: '11.0'
+          REALESRGAN_MESON_SETUP_ARGS: '--buildtype release'
+        name: 'Build wheel'
+        run: 'uv build --wheel'
+      - name: 'Upload wheel'
+        uses: 'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a'
+        with:
+          if-no-files-found: 'error'
+          name: 'release-assets-macos-x86_64'
+          path: 'dist/*.whl'
+  build-windows-x86_64:
+    permissions:
+      contents: 'read'
+    runs-on: 'windows-latest'
+    steps:
+      - uses: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
+        with:
+          persist-credentials: false
+      # Shallow submodule checkout: full ncnn history is over 1 GB.
+      - name: 'Checkout submodules'
+        run: 'git submodule update --init --depth 1 src/ncnn'
+      - uses: 'actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97'
+        with:
+          python-version: '3.13'
+      - name: 'Install dependencies'
+        run: 'python -m pip install --upgrade meson ninja'
+      - name: 'Vulkan SDK'
+        run: |
+          Invoke-WebRequest -Uri https://sdk.lunarg.com/sdk/download/1.2.162.0/windows/VulkanSDK-1.2.162.0-Installer.exe?Human=true -OutFile VulkanSDK-1.2.162.0-Installer.exe
+          7z x -aoa ./VulkanSDK-1.2.162.0-Installer.exe -oVulkanSDK
+          Remove-Item .\VulkanSDK\Demos, .\VulkanSDK\Samples, .\VulkanSDK\Third-Party, .\VulkanSDK\Tools, .\VulkanSDK\Tools32, .\VulkanSDK\Bin32, .\VulkanSDK\Lib32 -Recurse
+      - env:
+          VULKAN_SDK: '${{ github.workspace }}/VulkanSDK'
+        name: 'Build ncnn'
+        run: |
+          cmake -S src/ncnn -B ncnn-build -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_INSTALL_PREFIX="$env:GITHUB_WORKSPACE/ncnn-install" `
+            -DNCNN_VULKAN=ON -DNCNN_BUILD_TESTS=OFF -DNCNN_BUILD_EXAMPLES=OFF `
+            -DNCNN_BUILD_TOOLS=OFF -DNCNN_BUILD_BENCHMARK=OFF
+          cmake --build ncnn-build --config Release -j $env:NUMBER_OF_PROCESSORS
+          cmake --install ncnn-build --config Release
+      - uses: 'astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7'
+        with:
+          enable-cache: false
+      - env:
+          CMAKE_PREFIX_PATH: '${{ github.workspace }}/ncnn-install'
+          REALESRGAN_MESON_SETUP_ARGS: '--buildtype release -Db_vscrt=mt'
+          VULKAN_SDK: '${{ github.workspace }}/VulkanSDK'
+        name: 'Build wheel'
+        run: 'uv build --wheel'
+      - name: 'Upload wheel'
+        uses: 'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a'
+        with:
+          if-no-files-found: 'error'
+          name: 'release-assets-windows-x86_64'
+          path: 'dist/*.whl'
+  build-windows-arm64:
+    permissions:
+      contents: 'read'
+    runs-on: 'windows-11-arm'
+    steps:
+      - uses: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
+        with:
+          persist-credentials: false
+      # Shallow submodule checkout: full ncnn history is over 1 GB.
+      - name: 'Checkout submodules'
+        run: 'git submodule update --init --depth 1 src/ncnn'
+      - uses: 'actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97'
+        with:
+          python-version: '3.13'
+      - name: 'Install dependencies'
+        run: 'python -m pip install --upgrade meson ninja'
+      - name: 'Vulkan SDK'
+        run: |
+          Invoke-WebRequest -Uri https://sdk.lunarg.com/sdk/download/1.2.162.0/windows/VulkanSDK-1.2.162.0-Installer.exe?Human=true -OutFile VulkanSDK-1.2.162.0-Installer.exe
+          7z x -aoa ./VulkanSDK-1.2.162.0-Installer.exe -oVulkanSDK
+          Remove-Item .\VulkanSDK\Demos, .\VulkanSDK\Samples, .\VulkanSDK\Third-Party, .\VulkanSDK\Tools, .\VulkanSDK\Tools32, .\VulkanSDK\Bin32, .\VulkanSDK\Lib32 -Recurse
+      - env:
+          VULKAN_SDK: '${{ github.workspace }}/VulkanSDK'
+        name: 'Build ncnn'
+        run: |
+          cmake -S src/ncnn -B ncnn-build -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_INSTALL_PREFIX="$env:GITHUB_WORKSPACE/ncnn-install" `
+            -DNCNN_VULKAN=ON -DNCNN_BUILD_TESTS=OFF -DNCNN_BUILD_EXAMPLES=OFF `
+            -DNCNN_BUILD_TOOLS=OFF -DNCNN_BUILD_BENCHMARK=OFF
+          cmake --build ncnn-build --config Release -j $env:NUMBER_OF_PROCESSORS
+          cmake --install ncnn-build --config Release
+      - uses: 'astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7'
+        with:
+          enable-cache: false
+      - env:
+          CMAKE_PREFIX_PATH: '${{ github.workspace }}/ncnn-install'
+          REALESRGAN_MESON_SETUP_ARGS: '--buildtype release -Db_vscrt=mt'
+          VULKAN_SDK: '${{ github.workspace }}/VulkanSDK'
+        name: 'Build wheel'
+        run: 'uv build --wheel'
+      - name: 'Upload wheel'
+        uses: 'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a'
+        with:
+          if-no-files-found: 'error'
+          name: 'release-assets-windows-arm64'
+          path: 'dist/*.whl'
+  publish-wheels:
+    environment: 'release'
+    needs:
+      - 'build-linux-aarch64'
+      - 'build-macos-arm64'
+      - 'build-macos-x86_64'
+      - 'build-windows-x86_64'
+      - 'build-windows-arm64'
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: 'ubuntu-latest'
+    steps:
+      - name: 'Download wheels'
+        uses: 'actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c'
+        with:
+          merge-multiple: true
+          path: 'dist'
+          pattern: 'release-assets-*'
+      - name: 'Publish wheels'
+        uses: 'pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33'
+name: 'Wheels'
+'on':
+  push:
+    tags:
+      - 'v*'
+permissions: {}
