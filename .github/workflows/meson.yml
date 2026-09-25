@@ -151,6 +151,8 @@ jobs:
           $prune = 'Demos', 'Samples', 'Third-Party', 'Tools', 'Tools32', 'Bin32', 'Lib32' |
             ForEach-Object { ".\VulkanSDK\$_" } | Where-Object { Test-Path $_ }
           if ($prune) { Remove-Item $prune -Recurse }
+          if (!(Test-Path .\VulkanSDK\Bin\glslangValidator.exe)) { throw 'glslangValidator.exe missing from extracted SDK' }
+          "PATH=$env:GITHUB_WORKSPACE/VulkanSDK/Bin;$env:PATH" >> $env:GITHUB_ENV
       - env:
           VULKAN_SDK: '${{ github.workspace }}/VulkanSDK'
         name: 'Build ncnn'
