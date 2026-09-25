@@ -262,7 +262,11 @@ filterCreate(const VSMap *in, VSMap *out, void *userData, VSCore *core, const VS
         d->realesrgan->scale = scale;
         d->realesrgan->tilesize = tilesize;
         d->realesrgan->prepadding = 10;
+#if _WIN32
+        d->realesrgan->load(fs::path(paramPath).wstring(), fs::path(modelPath).wstring());
+#else
         d->realesrgan->load(paramPath, modelPath);
+#endif
     } catch (const std::string &error) {
         {
             std::lock_guard<std::mutex> guard(g_lock);
