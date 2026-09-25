@@ -273,7 +273,7 @@ jobs:
           enable-cache: false
       - env:
           CMAKE_PREFIX_PATH: '${{ github.workspace }}/ncnn-install;${{ github.workspace }}/VulkanSDK'
-          REALESRGAN_MESON_SETUP_ARGS: '--buildtype release -Db_vscrt=mt'
+          REALESRGAN_MESON_SETUP_ARGS: '--buildtype release'
           REALESRGAN_REQUIRE_NATIVE: '1'
           VULKAN_SDK: '${{ github.workspace }}/VulkanSDK'
         name: 'Build wheel'
