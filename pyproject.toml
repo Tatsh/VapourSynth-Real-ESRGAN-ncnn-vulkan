@@ -83,7 +83,7 @@ max-line-length = 100
 
 [tool.hatch.build.targets.sdist]
 include = [
-  "/LICENSE",
+  "/LICENSE.txt",
   "/README.md",
   "/hatch_build.py",
   "/meson.build",

@@ -195,7 +195,7 @@ jobs:
           $version = (meson introspect --projectinfo build | ConvertFrom-Json).version
           New-Item -ItemType Directory -Force -Path stage | Out-Null
           Copy-Item build/src/*.dll stage/
-          Copy-Item LICENSE, LICENSE.txt, README.md stage/
+          Copy-Item LICENSE.txt, README.md stage/
           $name = "realesrgan-$version-windows-${{ matrix.sys.arch }}.zip"
           Compress-Archive -Path stage/* -DestinationPath $name -Force
       - name: 'Upload artefacts'

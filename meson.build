@@ -72,7 +72,7 @@ endif
 subdir('src')
 
 install_data(
-  ['LICENSE', 'LICENSE.txt', 'README.md'],
+  ['LICENSE.txt', 'README.md'],
   install_dir: get_option('datadir') / 'doc' / meson.project_name(),
 )
 

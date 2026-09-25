@@ -126,7 +126,7 @@ local utils = import 'utils.libsonnet';
           targets: {
             sdist: {
               include: [
-                '/LICENSE',
+                '/LICENSE.txt',
                 '/README.md',
                 '/hatch_build.py',
                 '/meson.build',
