@@ -52,7 +52,7 @@ jobs:
         run: |
           tag="$TAG"
           sha="$HEAD_SHA"
-          required_workflows=('Meson' 'Publish' 'Wheels')
+          required_workflows=('Meson' 'Publish')
           optional_workflows=('Prettier' 'QA' 'Spelling' 'markdownlint')
           all_success=true
           process_workflow() {
@@ -168,7 +168,6 @@ name: 'Release'
       - 'Publish'
       - 'QA'
       - 'Spelling'
-      - 'Wheels'
       - 'markdownlint'
 permissions:
   actions: 'write'

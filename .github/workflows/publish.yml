@@ -1,3 +1,8 @@
+# Hand-maintained Publish workflow: builds an sdist plus one wheel per
+# OS/CPU combination (via direct runners, since the Vulkan and ncnn
+# dependencies do not fit in cibuildwheel containers) and publishes them
+# all to PyPI in a single job. A Wiswa regen overwrites this file with the
+# single-wheel template; restore this version afterwards.
 jobs:
   check:
     permissions:
@@ -15,7 +20,7 @@ jobs:
         name: 'Wait for workflows'
         run: |
           sha="$COMMIT_SHA"
-          required_workflows=('Meson' 'Wheels')
+          required_workflows=('Meson')
           optional_workflows=('Prettier' 'QA' 'Spelling' 'markdownlint')
           process_workflow() {
             local workflow="$1" treat_missing="$2"
@@ -72,13 +77,11 @@ jobs:
           done
           echo '::error::Timed out waiting for workflows.'
           exit 1
-  publish:
-    environment: 'release'
+  build-sdist:
     needs:
       - 'check'
     permissions:
-      contents: 'write'
-      id-token: 'write'
+      contents: 'read'
     runs-on: 'ubuntu-latest'
     steps:
       - uses: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
@@ -91,47 +94,208 @@ jobs:
         uses: 'astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7'
         with:
           enable-cache: false
-      - run: 'uv build'
-      - uses: 'pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33'
-      - if: "github.ref_type == 'tag'"
-        name: 'Upload release assets'
-        uses: 'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a'
+      - name: 'Build sdist'
+        run: 'uv build --sdist'
+      - uses: 'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a'
         with:
-          if-no-files-found: 'error'
-          name: 'release-assets-dist'
-          path: "dist/*.tar.gz\ndist/*.whl"
-  release-assets:
-    concurrency:
-      group: 'release-assets-${{ github.ref }}'
-      queue: 'max'
-    if: "github.ref_type == 'tag'"
+          name: 'sdist'
+          path: 'dist/*.tar.gz'
+  build-wheels-linux:
     needs:
-      - 'publish'
+      - 'check'
     permissions:
+      contents: 'read'
+    runs-on: '${{ matrix.arch.runner }}'
+    steps:
+      - uses: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
+        with:
+          persist-credentials: false
+      # Shallow submodule checkout: full ncnn history is over 1 GB.
+      - name: 'Checkout submodules'
+        run: 'git submodule update --init --depth 1 src/ncnn'
+      - uses: 'actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97'
+        with:
+          python-version: '3.13'
+      - name: 'Install dependencies'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build libvulkan-dev glslang-tools
+          python -m pip install --upgrade meson
+      - name: 'Build ncnn'
+        run: |
+          cmake -S src/ncnn -B ncnn-build -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="${GITHUB_WORKSPACE}/ncnn-install" \
+            -DNCNN_VULKAN=ON -DNCNN_BUILD_TESTS=OFF -DNCNN_BUILD_EXAMPLES=OFF \
+            -DNCNN_BUILD_TOOLS=OFF -DNCNN_BUILD_BENCHMARK=OFF
+          cmake --build ncnn-build -j "$(nproc)"
+          cmake --install ncnn-build
+      - uses: 'astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7'
+        with:
+          enable-cache: false
+      - env:
+          CMAKE_PREFIX_PATH: '${{ github.workspace }}/ncnn-install'
+          REALESRGAN_MESON_SETUP_ARGS: '--buildtype release'
+        name: 'Build wheel'
+        run: 'uv build --wheel'
+      - uses: 'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a'
+        with:
+          name: 'wheels-linux-${{ matrix.arch.suffix }}'
+          path: 'dist/*.whl'
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - runner: 'ubuntu-latest'
+            suffix: 'x86_64'
+          - runner: 'ubuntu-24.04-arm'
+            suffix: 'aarch64'
+  build-wheels-macos:
+    needs:
+      - 'check'
+    permissions:
+      contents: 'read'
+    runs-on: '${{ matrix.os.runner }}'
+    steps:
+      - uses: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
+        with:
+          persist-credentials: false
+      # Shallow submodule checkout: full ncnn history is over 1 GB.
+      - name: 'Checkout submodules'
+        run: 'git submodule update --init --depth 1 src/ncnn'
+      - uses: 'actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97'
+        with:
+          python-version: '3.13'
+      - name: 'Install dependencies'
+        run: |
+          brew install cmake ninja molten-vk glslang
+          python -m pip install --upgrade meson
+      - name: 'Build ncnn'
+        run: |
+          cmake -S src/ncnn -B ncnn-build -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="${GITHUB_WORKSPACE}/ncnn-install" \
+            -DNCNN_VULKAN=ON -DNCNN_BUILD_TESTS=OFF -DNCNN_BUILD_EXAMPLES=OFF \
+            -DNCNN_BUILD_TOOLS=OFF -DNCNN_BUILD_BENCHMARK=OFF
+          cmake --build ncnn-build -j "$(sysctl -n hw.ncpu)"
+          cmake --install ncnn-build
+      - uses: 'astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7'
+        with:
+          enable-cache: false
+      - env:
+          CMAKE_PREFIX_PATH: '${{ github.workspace }}/ncnn-install'
+          MACOSX_DEPLOYMENT_TARGET: '11.0'
+          REALESRGAN_MESON_SETUP_ARGS: '--buildtype release'
+        name: 'Build wheel'
+        run: 'uv build --wheel'
+      - uses: 'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a'
+        with:
+          name: 'wheels-macos-${{ matrix.os.suffix }}'
+          path: 'dist/*.whl'
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - runner: 'macos-latest'
+            suffix: 'arm64'
+          - runner: 'macos-15-intel'
+            suffix: 'x86_64'
+  build-wheels-windows:
+    needs:
+      - 'check'
+    permissions:
+      contents: 'read'
+    runs-on: '${{ matrix.sys.runner }}'
+    steps:
+      - uses: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
+        with:
+          persist-credentials: false
+      # Shallow submodule checkout: full ncnn history is over 1 GB.
+      - name: 'Checkout submodules'
+        run: 'git submodule update --init --depth 1 src/ncnn'
+      - uses: 'actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97'
+        with:
+          python-version: '3.13'
+      - name: 'Install dependencies'
+        run: 'python -m pip install --upgrade meson ninja'
+      - name: 'Vulkan SDK'
+        run: |
+          Invoke-WebRequest -Uri https://sdk.lunarg.com/sdk/download/1.2.162.0/windows/VulkanSDK-1.2.162.0-Installer.exe?Human=true -OutFile VulkanSDK-1.2.162.0-Installer.exe
+          7z x -aoa ./VulkanSDK-1.2.162.0-Installer.exe -oVulkanSDK
+          Remove-Item .\VulkanSDK\Demos, .\VulkanSDK\Samples, .\VulkanSDK\Third-Party, .\VulkanSDK\Tools, .\VulkanSDK\Tools32, .\VulkanSDK\Bin32, .\VulkanSDK\Lib32 -Recurse
+      - env:
+          VULKAN_SDK: '${{ github.workspace }}/VulkanSDK'
+        name: 'Build ncnn'
+        run: |
+          cmake -S src/ncnn -B ncnn-build -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_INSTALL_PREFIX="$env:GITHUB_WORKSPACE/ncnn-install" `
+            -DNCNN_VULKAN=ON -DNCNN_BUILD_TESTS=OFF -DNCNN_BUILD_EXAMPLES=OFF `
+            -DNCNN_BUILD_TOOLS=OFF -DNCNN_BUILD_BENCHMARK=OFF
+          cmake --build ncnn-build --config Release -j $env:NUMBER_OF_PROCESSORS
+          cmake --install ncnn-build --config Release
+      - uses: 'astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7'
+        with:
+          enable-cache: false
+      - env:
+          CMAKE_PREFIX_PATH: '${{ github.workspace }}/ncnn-install'
+          REALESRGAN_MESON_SETUP_ARGS: '--buildtype release -Db_vscrt=mt'
+          VULKAN_SDK: '${{ github.workspace }}/VulkanSDK'
+        name: 'Build wheel'
+        run: 'uv build --wheel'
+      - uses: 'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a'
+        with:
+          name: 'wheels-windows-${{ matrix.sys.arch }}'
+          path: 'dist/*.whl'
+    strategy:
+      fail-fast: false
+      matrix:
+        sys:
+          - arch: 'x86_64'
+            runner: 'windows-latest'
+          - arch: 'arm64'
+            runner: 'windows-11-arm'
+  publish:
+    environment: 'release'
+    needs:
+      - 'build-sdist'
+      - 'build-wheels-linux'
+      - 'build-wheels-macos'
+      - 'build-wheels-windows'
+    permissions:
+      actions: 'read'
       contents: 'write'
+      id-token: 'write'
     runs-on: 'ubuntu-latest'
     steps:
-      - name: 'Download build artifacts'
-        uses: 'actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c'
+      - uses: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1'
+        with:
+          persist-credentials: false
+      - uses: 'actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c'
         with:
           merge-multiple: true
-          path: '_release_assets'
-          pattern: 'release-assets-*'
+          path: 'dist'
+          pattern: 'wheels-*'
+      - uses: 'actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c'
+        with:
+          name: 'sdist'
+          path: 'dist'
+      - uses: 'pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33'
       - env:
-          GH_REPO: '${{ github.repository }}'
+          GH_TOKEN: '${{ github.token }}'
+          HEAD_SHA: '${{ github.sha }}'
+        name: 'Download the Windows zips from the Meson run'
+        run: |
+          run_id=$(gh run list --workflow Meson --commit "$HEAD_SHA" \
+            --json databaseId,conclusion --jq '[.[] | select(.conclusion == "success")][0].databaseId')
+          mkdir -p zips
+          if [[ -n "$run_id" && "$run_id" != 'null' ]]; then
+            gh run download "$run_id" --pattern 'realesrgan-release-windows-*' --dir zips
+          fi
+      - env:
           GH_TOKEN: '${{ github.token }}'
         name: 'Create or update draft release'
         run: |
-          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 ||
-            gh release create "$GITHUB_REF_NAME" --draft --notes ''
-          shopt -s nullglob
-          assets=(_release_assets/*)
-          if [ -z "${assets[0]-}" ]; then
-            echo 'No build artifacts to attach.'
-            exit 0
-          fi
-          gh release upload "$GITHUB_REF_NAME" "${assets[@]}" --clobber
-        shell: 'bash'
+          mapfile -t zips < <(find zips -name '*.zip')
+          gh release create "$GITHUB_REF_NAME" --draft --notes '' dist/*.tar.gz dist/*.whl "${zips[@]}" ||
+            gh release upload "$GITHUB_REF_NAME" dist/*.tar.gz dist/*.whl "${zips[@]}" --clobber
 name: 'Publish'
 'on':
   push:
