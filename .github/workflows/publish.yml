@@ -195,7 +195,7 @@ jobs:
           enable-cache: false
       - env:
           CMAKE_PREFIX_PATH: '${{ github.workspace }}/ncnn-install'
-          MACOSX_DEPLOYMENT_TARGET: '11.0'
+          MACOSX_DEPLOYMENT_TARGET: '15.0'
           REALESRGAN_MESON_SETUP_ARGS: '--buildtype release'
           REALESRGAN_REQUIRE_NATIVE: '1'
         name: 'Build wheel'
@@ -204,7 +204,7 @@ jobs:
       # vendor them into the wheel so it loads without Homebrew installed.
       # delocate-wheel rewrites the wheels in place.
       - env:
-          MACOSX_DEPLOYMENT_TARGET: '11.0'
+          MACOSX_DEPLOYMENT_TARGET: '15.0'
         name: 'Bundle macOS dependencies'
         run: |
           python -m pip install delocate
@@ -217,7 +217,7 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - runner: 'macos-latest'
+          - runner: 'macos-15'
             suffix: 'arm64'
           - runner: 'macos-15-intel'
             suffix: 'x86_64'

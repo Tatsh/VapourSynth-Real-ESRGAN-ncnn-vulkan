@@ -99,7 +99,8 @@ jobs:
       # No VapourSynth is installed here, so the build downloads VapourSynth4.h
       # and VSHelper4.h itself. This exercises the same path the wheel builds take.
       - env:
-          CMAKE_PREFIX_PATH: '${{ github.workspace }}/ncnn-install;${{ github.workspace }}/VulkanSDK'
+          CMAKE_PREFIX_PATH: '${{ github.workspace }}/ncnn-install'
+          MACOSX_DEPLOYMENT_TARGET: '15.0'
         name: 'Configure'
         run: >-
           meson setup build --buildtype '${{ matrix.build-type }}'
@@ -124,7 +125,7 @@ jobs:
       matrix:
         build-type: ['debug', 'release']
         os:
-          - runner: 'macos-latest'
+          - runner: 'macos-15'
             suffix: 'arm64'
           - runner: 'macos-15-intel'
             suffix: 'x86_64'
