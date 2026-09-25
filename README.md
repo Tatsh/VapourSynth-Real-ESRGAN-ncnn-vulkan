@@ -6,7 +6,7 @@
 [![PyPI - Version](https://img.shields.io/pypi/v/realesrgan)](https://pypi.org/project/vapoursynth-realesrgan-ncnn-vulkan/)
 [![GitHub tag (with filter)](https://img.shields.io/github/v/tag/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan)](https://github.com/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan/tags)
 [![License](https://img.shields.io/github/license/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan)](https://github.com/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan/blob/master/LICENSE.txt)
-[![GitHub commits since latest release (by SemVer including pre-releases)](https://img.shields.io/github/commits-since/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan/v0.0.0/master)](https://github.com/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan/compare/v0.0.0...master)
+[![GitHub commits since latest release (by SemVer including pre-releases)](https://img.shields.io/github/commits-since/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan/v0.1.0/master)](https://github.com/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan/compare/v0.1.0...master)
 [![QA](https://github.com/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan/actions/workflows/qa.yml/badge.svg)](https://github.com/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan/actions/workflows/qa.yml)
 [![Dependabot](https://img.shields.io/badge/Dependabot-enabled-blue?logo=dependabot)](https://github.com/dependabot)
 [![Documentation Status](https://readthedocs.org/projects/vapoursynth-real-esrgan-ncnn-vulkan/badge/?version=latest)](https://vapoursynth-real-esrgan-ncnn-vulkan.readthedocs.org/?badge=latest)

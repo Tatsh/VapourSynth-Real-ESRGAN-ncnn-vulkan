@@ -10,7 +10,7 @@ local utils = import 'utils.libsonnet';
   modules: [],
   pypi_project_name: 'vapoursynth-realesrgan-ncnn-vulkan',
   github_project_name: 'vapoursynth-real-esrgan-ncnn-vulkan',
-  version: '0.0.0',
+  version: '0.1.0',
   license: 'MIT',
   // vapoursynth>=75 (matching vs-jetpack) only supports Python 3.12+.
   supported_python_versions: ['3.12', '3.13', '3.14'],
