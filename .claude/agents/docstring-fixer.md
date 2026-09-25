@@ -89,7 +89,7 @@ def process(data: str, *, verbose: bool = False) -> int:
 
 ## Workflow
 
-1. For each Python file in `realesrgan/` (not tests, not `.venv`):
+1. For each Python file in `vapoursynth_real_esrgan_ncnn_vulkan/` (not tests, not `.venv`):
    a. Read the file.
    b. Identify symbols in `__all__`.
    c. Check each for a docstring. Flag missing or incomplete ones.

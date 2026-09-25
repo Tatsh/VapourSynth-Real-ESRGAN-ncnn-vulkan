@@ -1,6 +1,6 @@
 # Release
 
-Prepare and publish a new release for the realesrgan project.
+Prepare and publish a new release for the vapoursynth-real-esrgan-ncnn-vulkan project.
 
 You manage the release process: update the changelog, determine the version bump, run pre-commit
 checks, bump the version, and push, and align GitHub release notes

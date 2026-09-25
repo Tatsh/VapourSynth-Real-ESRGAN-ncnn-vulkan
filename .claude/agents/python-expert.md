@@ -1,11 +1,11 @@
 ---
 name: python-expert
-description: Expert-level Python author for non-trivial implementation work in the realesrgan project. Use when the task needs idiomatic, production-quality Python beyond a simple edit.
+description: Expert-level Python author for non-trivial implementation work in the vapoursynth-real-esrgan-ncnn-vulkan project. Use when the task needs idiomatic, production-quality Python beyond a simple edit.
 ---
 
 # Python Expert Agent
 
-General-purpose expert-level Python coding agent for the realesrgan project.
+General-purpose expert-level Python coding agent for the vapoursynth-real-esrgan-ncnn-vulkan project.
 
 ## Role
 
@@ -36,7 +36,7 @@ conventions defined in the rule files under `.claude/rules/`.
   @click.option('-d', '--debug', is_flag=True)
   def my_command(debug: bool = False) -> None:
       """Do something."""
-      setup_logging(debug=debug, loggers={'realesrgan': {}})
+      setup_logging(debug=debug, loggers={'vapoursynth_real_esrgan_ncnn_vulkan': {}})
   ```
 
   Additional third-party loggers can be added as needed:
@@ -45,7 +45,7 @@ conventions defined in the rule files under `.claude/rules/`.
   setup_logging(
       debug=debug,
       loggers={
-          'realesrgan': {},
+          'vapoursynth_real_esrgan_ncnn_vulkan': {},
           'urllib3': {},
           'soupsieve': {},
       },
@@ -219,12 +219,12 @@ text, not Sphinx references. Use `soup : bs4.Tag` not `` soup : :py:class:`~bs4.
 In descriptive prose within docstrings, use Sphinx cross-references when referring to other types,
 modules, or functions:
 
-- `` :py:mod:`realesrgan.string` `` for modules
-- `` :py:func:`realesrgan.string.slugify` `` for functions
-- `` :py:class:`realesrgan.typing.ProbeDict` `` for classes
+- `` :py:mod:`vapoursynth_real_esrgan_ncnn_vulkan.string` `` for modules
+- `` :py:func:`vapoursynth_real_esrgan_ncnn_vulkan.string.slugify` `` for functions
+- `` :py:class:`vapoursynth_real_esrgan_ncnn_vulkan.typing.ProbeDict` `` for classes
 - `` :py:meth:`MyClass.my_method` `` for methods
 - Use `~` to shorten the displayed name:
-  `` :py:func:`~realesrgan.string.slugify` `` renders as `slugify`
+  `` :py:func:`~vapoursynth_real_esrgan_ncnn_vulkan.string.slugify` `` renders as `slugify`
 - This applies to third-party types as well: `` :py:class:`~pathlib.Path` ``,
   `` :py:func:`~json.dumps` ``, `` :py:class:`~click.Context` ``, etc.
 

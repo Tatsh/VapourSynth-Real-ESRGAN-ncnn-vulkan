@@ -1,11 +1,11 @@
 .. only:: html
 
-   .. image:: https://img.shields.io/pypi/pyversions/vapoursynth-realesrgan-ncnn-vulkan.svg?color=blue&logo=python&logoColor=white
+   .. image:: https://img.shields.io/pypi/pyversions/vapoursynth-real-esrgan-ncnn-vulkan.svg?color=blue&logo=python&logoColor=white
       :target: https://www.python.org/
       :alt: Python versions
 
-   .. image:: https://img.shields.io/pypi/v/vapoursynth-realesrgan-ncnn-vulkan
-      :target: https://pypi.org/project/vapoursynth-realesrgan-ncnn-vulkan/
+   .. image:: https://img.shields.io/pypi/v/vapoursynth-real-esrgan-ncnn-vulkan
+      :target: https://pypi.org/project/vapoursynth-real-esrgan-ncnn-vulkan/
       :alt: PyPI - Version
 
    .. image:: https://img.shields.io/github/v/tag/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan
@@ -44,8 +44,8 @@
       :target: https://github.com/astral-sh/ruff
       :alt: Ruff
 
-   .. image:: https://static.pepy.tech/badge/vapoursynth-realesrgan-ncnn-vulkan/month
-      :target: https://pepy.tech/project/vapoursynth-realesrgan-ncnn-vulkan
+   .. image:: https://static.pepy.tech/badge/vapoursynth-real-esrgan-ncnn-vulkan/month
+      :target: https://pepy.tech/project/vapoursynth-real-esrgan-ncnn-vulkan
       :alt: Downloads
 
    .. image:: https://img.shields.io/github/stars/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan?logo=github&style=flat

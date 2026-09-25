@@ -24,7 +24,7 @@ changed, skip the click-auditor).
 
 ### When Python code is being committed
 
-If any changed files are under `realesrgan/` or `tests/`, run the following
+If any changed files are under `vapoursynth_real_esrgan_ncnn_vulkan/` or `tests/`, run the following
 agents in parallel, having each agent report back with a list of suggested changes. After all agents
 have completed, review their suggestions and apply them as appropriate. Then run the **qa-fixer**
 agent to format and fix any lint/spelling issues. Finally, run `yarn test:cov` to verify no
@@ -32,7 +32,7 @@ regressions.
 
 1. **python-moderniser** - upgrade to modern Python features.
 1. **click-auditor** - validate Click command consistency. **Only run if the project directly uses
-   Click and files under `realesrgan/commands/` changed.**
+   Click and files under `vapoursynth_real_esrgan_ncnn_vulkan/commands/` changed.**
 1. **docstring-fixer** - fix missing or incomplete docstrings.
 1. **copy-editor** - fix prose in comments, docstrings, and strings.
 1. **test-writer** - generate/update tests for new/changed code. **Skip if the only changes are in
@@ -45,7 +45,7 @@ regressions.
   check if `CHANGELOG.md` was modified (`git diff CHANGELOG.md`). If it was, stage it with the
   relevant commit. Follow `.claude/agents/changelog.md`, including its skip list.
 
-  Files under `realesrgan/`, `tests/`, or version changes in `pyproject.toml` are **candidates**
+  Files under `vapoursynth_real_esrgan_ncnn_vulkan/`, `tests/`, or version changes in `pyproject.toml` are **candidates**
   for the changelog agent only when they **change what users see or
   how the software behaves**. Editing those paths is not sufficient on its own.
 
@@ -67,7 +67,7 @@ file in a commit:
 - `CHANGELOG.md`
 - `.vscode/dictionary.txt`
 
-For example, if a commit contains `realesrgan/commands/main.py`,
+For example, if a commit contains `vapoursynth_real_esrgan_ncnn_vulkan/commands/main.py`,
 `tests/test_main_command.py`, and `CHANGELOG.md`, the component is determined by
 the source files only. `CHANGELOG.md` is simply staged alongside them.
 
@@ -125,11 +125,11 @@ Closes: #123
 
 ### Component prefix rules
 
-For Python files, strip the `realesrgan/` prefix and replace `/` with `.` (like module imports).
+For Python files, strip the `vapoursynth_real_esrgan_ncnn_vulkan/` prefix and replace `/` with `.` (like module imports).
 
-- Python file `realesrgan/media.py` → `media:`.
-- Multiple files under `realesrgan/commands/` → `commands:`.
-- Single command file `realesrgan/commands/admin.py` → `commands.admin:`.
+- Python file `vapoursynth_real_esrgan_ncnn_vulkan/media.py` → `media:`.
+- Multiple files under `vapoursynth_real_esrgan_ncnn_vulkan/commands/` → `commands:`.
+- Single command file `vapoursynth_real_esrgan_ncnn_vulkan/commands/admin.py` → `commands.admin:`.
 - Workflow file `.github/workflows/qa.yml` → `workflows/qa:`.
 - Multiple workflows → `workflows/*:`.
 - Agent files `.claude/agents/*.md` → `.claude:` or specific agent name.

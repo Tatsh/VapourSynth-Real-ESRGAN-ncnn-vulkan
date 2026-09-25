@@ -53,8 +53,8 @@ all rules in `.claude/rules/python.md`.
 ## Workflow
 
 1. Read `pyproject.toml` to get the list of all entry points in `[project.scripts]`.
-2. For each command module in `realesrgan/commands/`
-   or just `realesrgan/main.py`:
+2. For each command module in `vapoursynth_real_esrgan_ncnn_vulkan/commands/`
+   or just `vapoursynth_real_esrgan_ncnn_vulkan/main.py`:
    a. Read the file.
    b. Run each check above against every command.
    c. Apply fixes directly to the file.

@@ -44,7 +44,7 @@ dependencies = ["vapoursynth>=75"]
 description = "Real-ESRGAN super-resolution plugin for VapourSynth (ncnn Vulkan backend)."
 keywords = ["plugin", "vapoursynth"]
 license = "MIT"
-name = "vapoursynth-realesrgan-ncnn-vulkan"
+name = "vapoursynth-real-esrgan-ncnn-vulkan"
 readme = "README.md"
 requires-python = ">=3.12,<4.0"
 version = "0.1.0"

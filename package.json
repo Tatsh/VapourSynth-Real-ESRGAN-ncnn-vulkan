@@ -1,7 +1,7 @@
 {
   "_wiswa": {
     "commandLine": "wiswa -d",
-    "lastRun": "2026-09-25T03:28:27Z",
+    "lastRun": "2026-09-25T23:35:27Z",
     "version": "7137092"
   },
   "contributors": ["Andrew Udvare <audvare@gmail.com>", "Xintao Wang <xintao.wang@outlook.com>"],
@@ -43,7 +43,7 @@
   "description": "Real-ESRGAN super-resolution plugin for VapourSynth (ncnn Vulkan backend).",
   "devDependencies": {
     "@prettier/plugin-xml": "^3.4.2",
-    "cspell": "^10.3.3",
+    "cspell": "^10.3.4",
     "markdownlint-cli2": "^0.23.2",
     "prettier": "^3.9.8",
     "prettier-plugin-ini": "^1.3.0",
@@ -76,7 +76,7 @@
     "noBanner": true,
     "showFound": true
   },
-  "name": "realesrgan",
+  "name": "vapoursynth-real-esrgan-ncnn-vulkan",
   "packageManager": "yarn@4.18.1",
   "prettier": {
     "endOfLine": "lf",

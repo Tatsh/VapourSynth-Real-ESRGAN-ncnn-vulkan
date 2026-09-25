@@ -6,5 +6,5 @@ authors:
 cff-version: '1.2.0'
 date-released: '2026-09-25'
 message: 'If you use this software, please cite it as below.'
-title: 'realesrgan'
+title: 'vapoursynth-real-esrgan-ncnn-vulkan'
 version: '0.1.0'

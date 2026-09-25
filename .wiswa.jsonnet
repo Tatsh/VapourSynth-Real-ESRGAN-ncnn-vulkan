@@ -4,12 +4,10 @@ local utils = import 'utils.libsonnet';
   uses_user_defaults: true,
   local settings = self,
   security_policy_supported_versions: { '0.1.x': ':white_check_mark:' },
-  project_name: 'realesrgan',
+  project_name: 'vapoursynth-real-esrgan-ncnn-vulkan',
   // Non-typical VapourSynth packaging: the wheel ships only the native plugin
   // under vapoursynth/plugins; there is no importable Python module.
   modules: [],
-  pypi_project_name: 'vapoursynth-realesrgan-ncnn-vulkan',
-  github_project_name: 'vapoursynth-real-esrgan-ncnn-vulkan',
   version: '0.1.0',
   license: 'MIT',
   // vapoursynth>=75 (matching vs-jetpack) only supports Python 3.12+.
@@ -76,7 +74,7 @@ local utils = import 'utils.libsonnet';
       dev+: ['hatchling>=1.27.0,!=1.32.3', 'meson>=1.3.0', 'ninja>=1.11.0'],
     },
     project+: {
-      name: 'vapoursynth-realesrgan-ncnn-vulkan',
+      name: 'vapoursynth-real-esrgan-ncnn-vulkan',
       classifiers: utils.pyprojectClassifiers(settings, [
         'Environment :: Plugins',
         'Operating System :: MacOS',

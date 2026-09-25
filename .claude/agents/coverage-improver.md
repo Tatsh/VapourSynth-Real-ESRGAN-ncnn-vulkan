@@ -15,14 +15,14 @@ defined in `.claude/agents/test-writer.md`.
 
 ## Workflow
 
-1. Run `uv run pytest --cov realesrgan --cov-branch --cov-report term-missing:skip-covered`
+1. Run `uv run pytest --cov vapoursynth_real_esrgan_ncnn_vulkan --cov-branch --cov-report term-missing:skip-covered`
    to get the current coverage report.
 2. Parse the output to find files with missing lines/branches.
 3. For each uncovered section:
    a. Read the source file to understand what the uncovered code does.
    b. Read the existing test file for patterns and style.
    c. Write tests that exercise the uncovered paths.
-4. Run `uv run pytest --cov realesrgan --cov-branch --cov-report term-missing:skip-covered`
+4. Run `uv run pytest --cov vapoursynth_real_esrgan_ncnn_vulkan --cov-branch --cov-report term-missing:skip-covered`
    again to verify coverage improved.
 5. Launch the **qa-fixer** agent to format and fix any lint/spelling issues.
 

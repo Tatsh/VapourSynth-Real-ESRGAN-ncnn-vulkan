@@ -1705,7 +1705,7 @@ wheels = [
 ]
 
 [[package]]
-name = "vapoursynth-realesrgan-ncnn-vulkan"
+name = "vapoursynth-real-esrgan-ncnn-vulkan"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

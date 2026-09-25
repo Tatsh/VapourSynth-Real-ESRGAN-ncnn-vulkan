@@ -1,4 +1,4 @@
-# Realesrgan Memory
+# Vapoursynth-real-esrgan-ncnn-vulkan Memory
 
 See @README.md for an overview of this project.
 

@@ -2,8 +2,8 @@
 
 <!-- WISWA-GENERATED-README:START -->
 
-[![Python versions](https://img.shields.io/pypi/pyversions/vapoursynth-realesrgan-ncnn-vulkan.svg?color=blue&logo=python&logoColor=white)](https://www.python.org/)
-[![PyPI - Version](https://img.shields.io/pypi/v/realesrgan)](https://pypi.org/project/vapoursynth-realesrgan-ncnn-vulkan/)
+[![Python versions](https://img.shields.io/pypi/pyversions/vapoursynth-real-esrgan-ncnn-vulkan.svg?color=blue&logo=python&logoColor=white)](https://www.python.org/)
+[![PyPI - Version](https://img.shields.io/pypi/v/vapoursynth-real-esrgan-ncnn-vulkan)](https://pypi.org/project/vapoursynth-real-esrgan-ncnn-vulkan/)
 [![GitHub tag (with filter)](https://img.shields.io/github/v/tag/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan)](https://github.com/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan/tags)
 [![License](https://img.shields.io/github/license/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan)](https://github.com/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan/blob/master/LICENSE.txt)
 [![GitHub commits since latest release (by SemVer including pre-releases)](https://img.shields.io/github/commits-since/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan/v0.1.0/master)](https://github.com/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan/compare/v0.1.0...master)
@@ -13,7 +13,7 @@
 [![mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
 [![uv](https://img.shields.io/badge/uv-261230?logo=astral)](https://docs.astral.sh/uv/)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![Downloads](https://static.pepy.tech/badge/realesrgan/month)](https://pepy.tech/project/realesrgan)
+[![Downloads](https://static.pepy.tech/badge/vapoursynth-real-esrgan-ncnn-vulkan/month)](https://pepy.tech/project/vapoursynth-real-esrgan-ncnn-vulkan)
 [![Stargazers](https://img.shields.io/github/stars/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan?logo=github&style=flat)](https://github.com/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan/stargazers)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan/master.svg)](https://results.pre-commit.ci/latest/github/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan/master)
 [![Prettier](https://img.shields.io/badge/Prettier-black?logo=prettier)](https://prettier.io/)
