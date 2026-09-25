@@ -45,7 +45,7 @@ local utils = import 'utils.libsonnet';
       qa+: {
         // System packages for QA's uv sync. ncnn is not apt-installable;
         // hatch_build.py skips the native build without it.
-        apt_packages: ['cmake', 'glslang-tools', 'libvulkan-dev', 'ninja-build'],
+        apt_packages: ['cmake', 'glslang-tools', 'glslang-dev', 'libvulkan-dev', 'ninja-build'],
       },
       release_gate_workflows: ['Meson'],
     },

@@ -2,6 +2,7 @@ alphah
 alphaw
 animevideov
 appimage
+archs
 asyncio
 autodoc
 autouse
@@ -21,6 +22,7 @@ dataclasses
 datatable
 datatables
 dcmake
+delocate
 denorm
 destdir
 dncnn

@@ -9,6 +9,10 @@ ncnn_dep = dependency('ncnn', method: 'cmake', required: false)
 if not ncnn_dep.found()
   ncnn_dep = dependency('ncnn', method: 'pkg-config', required: true)
 endif
+# ncnn's CMake config does not propagate its glslang dependency, so link the
+# system glslang explicitly. It must be the same one ncnn itself was built
+# against (NCNN_SYSTEM_GLSLANG=ON in CI) to avoid ABI mismatches.
+glslang_dep = dependency('glslang', required: true)
 
 py_mod = import('python')
 py = py_mod.find_installation(required: false)
@@ -88,7 +92,7 @@ shared_library(
   'main.cpp',
   'realesrgan.cpp',
   shader_headers,
-  dependencies: [vapoursynth_dep, vulkan_dep, ncnn_dep],
+  dependencies: [vapoursynth_dep, vulkan_dep, ncnn_dep, glslang_dep],
   gnu_symbol_visibility: 'hidden',
   link_args: realesrgan_link_args,
   install: true,
