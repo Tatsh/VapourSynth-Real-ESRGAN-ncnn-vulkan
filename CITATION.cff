@@ -1,0 +1,10 @@
+authors:
+  - family-names: 'Udvare'
+    given-names: 'Andrew'
+  - family-names: 'Wang'
+    given-names: 'Xintao'
+cff-version: '1.2.0'
+date-released: '2026-09-25'
+message: 'If you use this software, please cite it as below.'
+title: 'realesrgan'
+version: '0.0.0'

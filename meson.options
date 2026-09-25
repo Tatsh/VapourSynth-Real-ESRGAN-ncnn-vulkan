@@ -1,0 +1,18 @@
+option(
+  'fetch_vapoursynth_headers',
+  type: 'boolean',
+  value: true,
+  description: 'Download VapourSynth4.h and VSHelper4.h at configure time when no headers are found.',
+)
+option(
+  'plugins_dir',
+  type: 'string',
+  value: '',
+  description: 'Install directory for the plugin. Defaults to <libdir>/vapoursynth.',
+)
+option(
+  'vapoursynth_headers_ref',
+  type: 'string',
+  value: 'R72',
+  description: 'Git ref of the VapourSynth repository to fetch VapourSynth4.h and VSHelper4.h from.',
+)

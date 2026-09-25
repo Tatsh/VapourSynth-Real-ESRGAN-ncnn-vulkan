@@ -1,0 +1,166 @@
+local utils = import 'utils.libsonnet';
+
+{
+  uses_user_defaults: true,
+  local settings = self,
+  security_policy_supported_versions: { '0.1.x': ':white_check_mark:' },
+  project_name: 'realesrgan',
+  // Non-typical VapourSynth packaging: the wheel ships only the native plugin
+  // under vapoursynth/plugins; there is no importable Python module.
+  modules: [],
+  pypi_project_name: 'vapoursynth-realesrgan-ncnn-vulkan',
+  github_project_name: 'VapourSynth-Real-ESRGAN-ncnn-vulkan',
+  version: '0.0.0',
+  license: 'MIT',
+  // vapoursynth>=75 (matching vs-jetpack) only supports Python 3.12+.
+  supported_python_versions: ['3.12', '3.13', '3.14'],
+  description: 'Real-ESRGAN super-resolution plugin for VapourSynth (ncnn Vulkan backend).',
+  shared_ignore+: [
+    '/build-wheel/',
+    '/subprojects/*/',
+    '/subprojects/.wraplock',
+  ],
+  // Model weights downloaded separately; keep them out of git like before.
+  gitignore+: [
+    '*.bin',
+    '*.param',
+  ],
+  authors+: [
+    {
+      'family-names': 'Wang',
+      'given-names': 'Xintao',
+      email: 'xintao.wang@outlook.com',
+      name: '%s %s' % [self['given-names'], self['family-names']],
+    },
+  ],
+  want_codeql: false,
+  // No test suite exists and the filter needs a Vulkan GPU plus model weights.
+  want_tests: false,
+  keywords: ['plugin', 'vapoursynth'],
+  package_json+: {
+    cspell+: {
+      ignorePaths+: [
+        'src/ncnn/**',
+      ],
+    },
+    'markdownlint-cli2'+: {
+      ignores: ['src/ncnn/**'],
+    },
+  },
+  pyproject+: {
+    'build-system': {
+      'build-backend': 'hatchling.build',
+      requires: [
+        // 1.32.3 briefly shipped a two-parameter BuildHookInterface, breaking
+        // ``hatch_build.py`` at import; fixed in 1.32.4.
+        'hatchling>=1.27.0,!=1.32.3',
+        'meson>=1.3.0',
+        'ninja>=1.11.0',
+        'packaging>=25.0',
+      ],
+    },
+    'dependency-groups'+: {
+      dev+: ['hatchling>=1.27.0,!=1.32.3', 'meson>=1.3.0', 'ninja>=1.11.0'],
+    },
+    project+: {
+      name: 'vapoursynth-realesrgan-ncnn-vulkan',
+      classifiers: utils.pyprojectClassifiers(settings, [
+        'Environment :: Plugins',
+        'Operating System :: MacOS',
+        'Operating System :: Microsoft :: Windows',
+        'Operating System :: POSIX :: Linux',
+        'Programming Language :: C++',
+        'Topic :: Multimedia :: Video',
+      ]),
+      dependencies: ['vapoursynth>=75'],
+    },
+    tool+: {
+      commitizen: {
+        name: 'cz_path',
+        remove_path_prefixes: ['include', 'src'],
+        tag_format: 'v$version',
+        version_files: [
+          '.wiswa.jsonnet',
+          'CITATION.cff',
+          'README.md',
+          'docs/badges.rst',
+          'docs/index.rst',
+          'package.json',
+          'meson.build',
+        ],
+        version_provider: 'pep621',
+      },
+      ruff+: {
+        // Vendored ncnn sources are not ours to lint.
+        exclude: ['src/ncnn'],
+        'namespace-packages': ['docs', 'tools'],
+      },
+      mypy+: {
+        // Vendored ncnn sources are not ours to type-check.
+        exclude: 'src/ncnn',
+      },
+      ty: {
+        src: {
+          // Vendored ncnn sources are not ours to type-check.
+          exclude: ['src/ncnn'],
+        },
+      },
+      pyright+: {
+        exclude+: ['src/ncnn/**'],
+      },
+      hatch: {
+        build: {
+          targets: {
+            sdist: {
+              include: [
+                '/LICENSE',
+                '/README.md',
+                '/hatch_build.py',
+                '/meson.build',
+                '/meson.options',
+                '/pyproject.toml',
+                '/src',
+                '/tools',
+              ],
+            },
+            wheel: {
+              artifacts: [
+                'vapoursynth/plugins/*.dll',
+                'vapoursynth/plugins/*.dylib',
+                'vapoursynth/plugins/*.so',
+              ],
+              hooks: { custom: { path: 'hatch_build.py' } },
+              include: ['/vapoursynth/plugins'],
+            },
+          },
+        },
+      },
+    },
+  },
+  // Vendored ncnn sources must not be reformatted or linted.
+  prettierignore+: [
+    '*.comp',
+    '*.cpp',
+    '*.h',
+    '*.in',
+    '*.wrap',
+    'meson.build',
+    'meson.options',
+    'src/ncnn/**',
+  ],
+  vscode+: {
+    c_cpp+: {
+      configurations: [
+        {
+          cStandard: 'gnu23',
+          compilerPath: '/usr/bin/gcc',
+          cppStandard: 'gnu++23',
+          includePath: [
+            '${workspaceFolder}/src/**',
+          ],
+          name: 'Linux',
+        },
+      ],
+    },
+  },
+}
