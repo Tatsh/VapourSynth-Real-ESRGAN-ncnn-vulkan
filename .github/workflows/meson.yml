@@ -26,6 +26,19 @@ jobs:
             -DNCNN_BUILD_TOOLS=OFF -DNCNN_BUILD_BENCHMARK=OFF -DNCNN_SYSTEM_GLSLANG=ON
           cmake --build ncnn-build -j "$(nproc)"
           cmake --install ncnn-build
+      # Ubuntu ships no SPIRV-Tools library, but glslang links against it,
+      # so build it from source into the system prefix.
+      - name: 'Build SPIRV-Tools'
+        run: |
+          git clone --depth 1 --branch vulkan-sdk-1.4.321.0 https://github.com/KhronosGroup/SPIRV-Headers spirv-headers
+          git clone --depth 1 --branch vulkan-sdk-1.4.321.0 https://github.com/KhronosGroup/SPIRV-Tools spirv-tools
+          cmake -S spirv-headers -B spirv-headers-build -DCMAKE_INSTALL_PREFIX=/usr
+          sudo cmake --install spirv-headers-build
+          cmake -S spirv-tools -B spirv-tools-build -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/usr -DBUILD_SHARED_LIBS=OFF \
+            -DSPIRV_SKIP_TESTS=ON -DSPIRV_SKIP_EXECUTABLES=ON
+          cmake --build spirv-tools-build -j "$(nproc)"
+          sudo cmake --install spirv-tools-build
       # No VapourSynth is installed here, so the build downloads VapourSynth4.h
       # and VSHelper4.h itself. This exercises the same path the wheel builds take.
       - env:

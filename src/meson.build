@@ -13,6 +13,16 @@ endif
 # system glslang explicitly. It must be the same one ncnn itself was built
 # against (NCNN_SYSTEM_GLSLANG=ON in CI) to avoid ABI mismatches.
 glslang_dep = dependency('glslang', required: true)
+# glslang's optimizer and disassembler live in SPIRV-Tools, which Ubuntu does
+# not package as a library, so CI builds it from source (macOS uses Homebrew,
+# Windows uses the SDK).
+spirv_tools_dep = dependency('SPIRV-Tools', method: 'pkg-config', required: false)
+if not spirv_tools_dep.found()
+  spirv_tools_dep = dependency('SPIRV-Tools', method: 'cmake', required: false)
+endif
+if not spirv_tools_dep.found()
+  error('SPIRV-Tools library not found. Install it (Ubuntu: build from source, macOS: brew install spirv-tools) or point PKG_CONFIG_PATH/CMAKE_PREFIX_PATH at it.')
+endif
 
 py_mod = import('python')
 py = py_mod.find_installation(required: false)
@@ -32,7 +42,12 @@ if not glslang.found()
     ).stdout().strip()
   endif
   if vulkan_sdk != ''
-    glslang = find_program('glslangValidator', vulkan_sdk / 'bin', required: false)
+    glslang = find_program(
+      'glslangValidator',
+      vulkan_sdk / 'Bin',
+      vulkan_sdk / 'bin',
+      required: false,
+    )
   endif
   if not glslang.found()
     error(
@@ -92,7 +107,7 @@ shared_library(
   'main.cpp',
   'realesrgan.cpp',
   shader_headers,
-  dependencies: [vapoursynth_dep, vulkan_dep, ncnn_dep, glslang_dep],
+  dependencies: [vapoursynth_dep, vulkan_dep, ncnn_dep, glslang_dep, spirv_tools_dep],
   gnu_symbol_visibility: 'hidden',
   link_args: realesrgan_link_args,
   install: true,
