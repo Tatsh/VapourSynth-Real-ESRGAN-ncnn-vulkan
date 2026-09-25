@@ -315,7 +315,10 @@ jobs:
         with:
           name: 'sdist'
           path: 'dist'
-      - uses: 'pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33'
+      # TEST ONLY: skipped so the release pipeline can be exercised end to end
+      # without publishing anything. Remove this guard for real releases.
+      - if: false
+        uses: 'pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33'
       - env:
           GH_TOKEN: '${{ github.token }}'
           HEAD_SHA: '${{ github.sha }}'
