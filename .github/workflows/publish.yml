@@ -317,10 +317,7 @@ jobs:
         with:
           name: 'sdist'
           path: 'dist'
-      # TEST ONLY: skipped so the release pipeline can be exercised end to end
-      # without publishing anything. Remove this guard for real releases.
-      - if: false
-        uses: 'pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33'
+      - uses: 'pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33'
       - env:
           GH_TOKEN: '${{ github.token }}'
           HEAD_SHA: '${{ github.sha }}'
@@ -334,7 +331,6 @@ jobs:
           fi
       - env:
           GH_TOKEN: '${{ github.token }}'
-        if: "github.ref_type == 'tag'"
         name: 'Create or update draft release'
         run: |
           mapfile -t zips < <(find zips -name '*.zip')
@@ -343,8 +339,6 @@ jobs:
 name: 'Publish'
 'on':
   push:
-    branches:
-      - 'master'
     tags:
       - 'v*'
 permissions: {}
