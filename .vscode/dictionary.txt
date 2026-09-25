@@ -80,7 +80,6 @@ namedtuples
 ncnn
 ncnn's
 ncpu
-nihui
 noone
 noqa
 numpy
@@ -111,7 +110,6 @@ pythonhosted
 realesr
 realesrgan
 realesrnet
-realsr
 reflow
 regen
 returncode
