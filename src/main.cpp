@@ -4,7 +4,6 @@
 #include <condition_variable>
 #include <cstdio>
 #include <filesystem>
-#include <format>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -192,8 +191,8 @@ filterCreate(const VSMap *in, VSMap *out, void *userData, VSCore *core, const VS
     /usr/share/realesrnet-x4plus.param
     */
         if (model == 0) {
-            paramPath += std::format("/models/realesr-animevideov3-x{}.param", scale).c_str();
-            modelPath += std::format("/models/realesr-animevideov3-x{}.bin", scale).c_str();
+            paramPath += "/models/realesr-animevideov3-x" + std::to_string(scale) + ".param";
+            modelPath += "/models/realesr-animevideov3-x" + std::to_string(scale) + ".bin";
         } else if (model == 1) {
             paramPath += "/models/realesrgan-x4plus-anime.param";
             modelPath += "/models/realesrgan-x4plus-anime.bin";
