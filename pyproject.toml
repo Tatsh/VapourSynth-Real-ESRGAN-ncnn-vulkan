@@ -58,10 +58,10 @@ email = "xintao.wang@outlook.com"
 name = "Xintao Wang"
 
 [project.urls]
-Issues = "https://github.com/Tatsh/VapourSynth-Real-ESRGAN-ncnn-vulkan/issues"
-documentation = "https://VapourSynth-Real-ESRGAN-ncnn-vulkan.readthedocs.org"
-homepage = "https://tatsh.github.io/VapourSynth-Real-ESRGAN-ncnn-vulkan/"
-repository = "https://github.com/Tatsh/VapourSynth-Real-ESRGAN-ncnn-vulkan"
+Issues = "https://github.com/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan/issues"
+documentation = "https://vapoursynth-real-esrgan-ncnn-vulkan.readthedocs.org"
+homepage = "https://tatsh.github.io/vapoursynth-real-esrgan-ncnn-vulkan/"
+repository = "https://github.com/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan"
 
 [tool.commitizen]
 name = "cz_path"

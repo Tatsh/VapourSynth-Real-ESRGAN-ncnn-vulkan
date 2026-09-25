@@ -77,8 +77,8 @@ html_theme_options = {
         },
     ],
     'repo_name': 'realesrgan',
-    'repo_url': 'https://github.com/Tatsh/VapourSynth-Real-ESRGAN-ncnn-vulkan',
-    'site_url': 'https://VapourSynth-Real-ESRGAN-ncnn-vulkan.readthedocs.org',
+    'repo_url': 'https://github.com/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan',
+    'site_url': 'https://vapoursynth-real-esrgan-ncnn-vulkan.readthedocs.org',
     'toc_title_is_page_title': True,
 }
 intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}

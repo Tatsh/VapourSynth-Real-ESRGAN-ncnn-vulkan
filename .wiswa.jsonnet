@@ -9,7 +9,7 @@ local utils = import 'utils.libsonnet';
   // under vapoursynth/plugins; there is no importable Python module.
   modules: [],
   pypi_project_name: 'vapoursynth-realesrgan-ncnn-vulkan',
-  github_project_name: 'VapourSynth-Real-ESRGAN-ncnn-vulkan',
+  github_project_name: 'vapoursynth-real-esrgan-ncnn-vulkan',
   version: '0.0.0',
   license: 'MIT',
   // vapoursynth>=75 (matching vs-jetpack) only supports Python 3.12+.

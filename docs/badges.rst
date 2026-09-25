@@ -8,28 +8,28 @@
       :target: https://pypi.org/project/vapoursynth-realesrgan-ncnn-vulkan/
       :alt: PyPI - Version
 
-   .. image:: https://img.shields.io/github/v/tag/Tatsh/VapourSynth-Real-ESRGAN-ncnn-vulkan
-      :target: https://github.com/Tatsh/VapourSynth-Real-ESRGAN-ncnn-vulkan/tags
+   .. image:: https://img.shields.io/github/v/tag/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan
+      :target: https://github.com/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan/tags
       :alt: GitHub tag (with filter)
 
-   .. image:: https://img.shields.io/github/license/Tatsh/VapourSynth-Real-ESRGAN-ncnn-vulkan
-      :target: https://github.com/Tatsh/VapourSynth-Real-ESRGAN-ncnn-vulkan/blob/master/LICENSE.txt
+   .. image:: https://img.shields.io/github/license/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan
+      :target: https://github.com/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan/blob/master/LICENSE.txt
       :alt: License
 
-   .. image:: https://img.shields.io/github/commits-since/Tatsh/VapourSynth-Real-ESRGAN-ncnn-vulkan/v0.0.0/master
-      :target: https://github.com/Tatsh/VapourSynth-Real-ESRGAN-ncnn-vulkan/compare/v0.0.0...master
+   .. image:: https://img.shields.io/github/commits-since/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan/v0.0.0/master
+      :target: https://github.com/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan/compare/v0.0.0...master
       :alt: GitHub commits since latest release (by SemVer including pre-releases)
 
-   .. image:: https://github.com/Tatsh/VapourSynth-Real-ESRGAN-ncnn-vulkan/actions/workflows/qa.yml/badge.svg
-      :target: https://github.com/Tatsh/VapourSynth-Real-ESRGAN-ncnn-vulkan/actions/workflows/qa.yml
+   .. image:: https://github.com/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan/actions/workflows/qa.yml/badge.svg
+      :target: https://github.com/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan/actions/workflows/qa.yml
       :alt: QA
 
    .. image:: https://img.shields.io/badge/Dependabot-enabled-blue?logo=dependabot
       :target: https://github.com/dependabot
       :alt: Dependabot
 
-   .. image:: https://readthedocs.org/projects/VapourSynth-Real-ESRGAN-ncnn-vulkan/badge/?version=latest
-      :target: https://VapourSynth-Real-ESRGAN-ncnn-vulkan.readthedocs.org/?badge=latest
+   .. image:: https://readthedocs.org/projects/vapoursynth-real-esrgan-ncnn-vulkan/badge/?version=latest
+      :target: https://vapoursynth-real-esrgan-ncnn-vulkan.readthedocs.org/?badge=latest
       :alt: Documentation Status
 
    .. image:: https://www.mypy-lang.org/static/mypy_badge.svg
@@ -48,12 +48,12 @@
       :target: https://pepy.tech/project/vapoursynth-realesrgan-ncnn-vulkan
       :alt: Downloads
 
-   .. image:: https://img.shields.io/github/stars/Tatsh/VapourSynth-Real-ESRGAN-ncnn-vulkan?logo=github&style=flat
-      :target: https://github.com/Tatsh/VapourSynth-Real-ESRGAN-ncnn-vulkan/stargazers
+   .. image:: https://img.shields.io/github/stars/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan?logo=github&style=flat
+      :target: https://github.com/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan/stargazers
       :alt: Stargazers
 
-   .. image:: https://results.pre-commit.ci/badge/github/Tatsh/VapourSynth-Real-ESRGAN-ncnn-vulkan/master.svg
-      :target: https://results.pre-commit.ci/latest/github/Tatsh/VapourSynth-Real-ESRGAN-ncnn-vulkan/master
+   .. image:: https://results.pre-commit.ci/badge/github/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan/master.svg
+      :target: https://results.pre-commit.ci/latest/github/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan/master
       :alt: pre-commit.ci status
 
    .. image:: https://img.shields.io/badge/Prettier-black?logo=prettier

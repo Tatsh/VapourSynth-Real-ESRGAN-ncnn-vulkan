@@ -13,5 +13,5 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 First version.
 
-[unreleased]: https://github.com/Tatsh/VapourSynth-Real-ESRGAN-ncnn-vulkan/compare/v0.0.0...HEAD
-[0.0.1]: https://github.com/Tatsh/VapourSynth-Real-ESRGAN-ncnn-vulkan/releases/tag/v0.0.0
+[unreleased]: https://github.com/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan/compare/v0.0.0...HEAD
+[0.0.1]: https://github.com/Tatsh/vapoursynth-real-esrgan-ncnn-vulkan/releases/tag/v0.0.0
