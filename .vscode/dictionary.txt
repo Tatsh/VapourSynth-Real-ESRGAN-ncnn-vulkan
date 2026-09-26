@@ -69,6 +69,7 @@ mapfile
 mesonbuild
 mesonmain
 mktemp
+mlrt
 modelpath
 modindex
 monkeypatch

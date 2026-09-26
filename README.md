@@ -1,5 +1,7 @@
 # vapoursynth-real-esrgan-ncnn-vulkan
 
+> **Deprecated:** use [vs-mlrt](https://github.com/AmusementClub/vs-mlrt) instead.
+
 <!-- WISWA-GENERATED-README:START -->
 
 [![Python versions](https://img.shields.io/pypi/pyversions/vapoursynth-real-esrgan-ncnn-vulkan.svg?color=blue&logo=python&logoColor=white)](https://www.python.org/)

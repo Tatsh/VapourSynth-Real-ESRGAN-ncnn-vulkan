@@ -317,7 +317,8 @@ jobs:
         with:
           name: 'sdist'
           path: 'dist'
-      - uses: 'pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33'
+      # PyPI publishing is disabled: this project is deprecated.
+      # - uses: 'pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33'
       - env:
           GH_TOKEN: '${{ github.token }}'
           HEAD_SHA: '${{ github.sha }}'
