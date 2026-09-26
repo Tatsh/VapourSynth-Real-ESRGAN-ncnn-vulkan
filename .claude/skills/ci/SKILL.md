@@ -45,7 +45,8 @@ regressions.
   check if `CHANGELOG.md` was modified (`git diff CHANGELOG.md`). If it was, stage it with the
   relevant commit. Follow `.claude/agents/changelog.md`, including its skip list.
 
-  Files under `vapoursynth_real_esrgan_ncnn_vulkan/`, `tests/`, or version changes in `pyproject.toml` are **candidates**
+  Files under `vapoursynth_real_esrgan_ncnn_vulkan/`, `tests/`, or version changes
+  in `pyproject.toml` are **candidates**
   for the changelog agent only when they **change what users see or
   how the software behaves**. Editing those paths is not sufficient on its own.
 
@@ -125,7 +126,8 @@ Closes: #123
 
 ### Component prefix rules
 
-For Python files, strip the `vapoursynth_real_esrgan_ncnn_vulkan/` prefix and replace `/` with `.` (like module imports).
+For Python files, strip the `vapoursynth_real_esrgan_ncnn_vulkan/` prefix and
+replace `/` with `.` (like module imports).
 
 - Python file `vapoursynth_real_esrgan_ncnn_vulkan/media.py` → `media:`.
 - Multiple files under `vapoursynth_real_esrgan_ncnn_vulkan/commands/` → `commands:`.

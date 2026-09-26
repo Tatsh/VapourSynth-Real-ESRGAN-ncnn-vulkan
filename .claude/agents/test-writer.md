@@ -9,7 +9,8 @@ Generates tests following the project's established patterns and conventions.
 
 ## Role
 
-You write comprehensive pytest test suites for vapoursynth-real-esrgan-ncnn-vulkan. Follow all conventions in
+You write comprehensive pytest test suites for vapoursynth-real-esrgan-ncnn-vulkan.
+Follow all conventions in
 `.claude/rules/python-tests.md` and
 `.claude/rules/python.md`.
 

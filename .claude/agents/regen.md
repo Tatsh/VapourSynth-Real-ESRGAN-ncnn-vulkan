@@ -74,8 +74,8 @@ and verify nothing is broken before committing.
 
 ## Rules
 
-- Never modify source code under `vapoursynth_real_esrgan_ncnn_vulkan/` or `tests/`. This agent only updates
-  managed/generated files.
+- Never modify source code under `vapoursynth_real_esrgan_ncnn_vulkan/` or `tests/`.
+  This agent only updates managed/generated files.
 - If Wiswa fails, stop and report the error.
 - If any post-processing step fails, stop and report the error.
 - Always verify changes before committing. Err on the side of caution.
